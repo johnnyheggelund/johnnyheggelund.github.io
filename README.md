@@ -7,5 +7,5 @@
 ### Tools
 
 * [AI Web Talk](https://johnnyheggelund.github.io/ai-web-talk/)
-* [LineBeast](https://johnnyheggelund.github.io/linebeast/linebeast.html)
+* [LineBeast](https://johnnyheggelund.github.io/linebeast/)
 * [Image Editor](https://johnnyheggelund.github.io/image-editor/)
