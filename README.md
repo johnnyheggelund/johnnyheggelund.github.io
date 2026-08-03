@@ -7,6 +7,8 @@
 
 ---
 
+**TOOLS**
+
 🤖 [A web-based code editor specifically designed for crafting single-file web applications, featuring an integrated Gemini AI chat and an automated code cleanup utility.](https://johnnyheggelund.github.io/ai-web-talk/)  
 
 🖥️ [LineBeast Web Code Editor, specifically designed for handling exceptionally large HTML, CSS, and JavaScript files.](https://johnnyheggelund.github.io/linebeast/)  
