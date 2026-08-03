@@ -1,13 +1,13 @@
 ## My Free Web Games & Tools
 
-### Games
+## Games
 
-🔵 [Checkers - European rules](https://johnnyheggelund.github.io/checkers-european/)  
-🔴 [Checkers - American rules](https://johnnyheggelund.github.io/checkers-american/)  
-📦 [Sokoban box puzzle game](https://johnnyheggelund.github.io/sokoban-box-puzzle/)  
-🏠 [City Builder simulation game](https://johnnyheggelund.github.io/city-builder-sim/)
+### 🔵 [Checkers - European rules](https://johnnyheggelund.github.io/checkers-european/)  
+### 🔴 [Checkers - American rules](https://johnnyheggelund.github.io/checkers-american/)  
+### 📦 [Sokoban box puzzle game](https://johnnyheggelund.github.io/sokoban-box-puzzle/)  
+### 🏠 [City Builder simulation game](https://johnnyheggelund.github.io/city-builder-sim/)
 
-### Tools
+## Tools
 
 🤖 [A web-based code editor specifically designed for crafting single-file web applications, featuring an integrated Gemini AI chat and an automated code cleanup utility.](https://johnnyheggelund.github.io/ai-web-talk/)
 
