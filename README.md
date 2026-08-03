@@ -9,6 +9,6 @@
 
 ### Tools
 
-* [AI Web Talk](https://johnnyheggelund.github.io/ai-web-talk/)
-* [LineBeast](https://johnnyheggelund.github.io/linebeast/)
-* [Image Editor](https://johnnyheggelund.github.io/image-editor/)
+* [A web-based code editor specifically designed for crafting single-file web applications, featuring an integrated Gemini AI chat and an automated code cleanup utility.](https://johnnyheggelund.github.io/ai-web-talk/)
+* [LineBeast Web Code Editor, specifically designed for handling exceptionally large HTML, CSS, and JavaScript files.](https://johnnyheggelund.github.io/linebeast/)
+* [An advanced, browser-based image editor featuring layers, filters, and standard professional-grade tools. Projects can be saved as JSON files, preserving all layers and settings for future editing.](https://johnnyheggelund.github.io/image-editor/)
