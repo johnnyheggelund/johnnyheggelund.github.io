@@ -18,3 +18,7 @@
 ---
 
 🖼️ [An advanced, browser-based image editor featuring layers, filters, and standard professional-grade tools. Projects can be saved as JSON files, preserving all layers and settings for future editing.](https://johnnyheggelund.github.io/image-editor/)
+
+---
+
+😀 [An emoji library featuring offline caching capabilities, where a Left-click copies the emoji, a Right-click downloads the PNG sprite, and Alt+X copies the Favicon HTML.](https://johnnyheggelund.github.io/emoji-library/)
