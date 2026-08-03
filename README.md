@@ -2,9 +2,10 @@
 
 ### Games
 
-* [Checkers EU](https://johnnyheggelund.github.io/checkers-european/)
-* [Sokoban](https://johnnyheggelund.github.io/sokoban-box-puzzle/)
-* [City Builder](https://johnnyheggelund.github.io/city-builder-sim/)
+* [Checkers - European rules](https://johnnyheggelund.github.io/checkers-european/)
+* [Checkers - American rules](https://johnnyheggelund.github.io/checkers-american/)
+* [Sokoban box puzzle game](https://johnnyheggelund.github.io/sokoban-box-puzzle/)
+* [City Builder simulation game](https://johnnyheggelund.github.io/city-builder-sim/)
 
 ### Tools
 
