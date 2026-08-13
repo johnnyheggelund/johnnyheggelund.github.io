@@ -3,7 +3,7 @@
 ### 🔵 [Checkers - European rules](https://johnnyheggelund.github.io/checkers-european/)  
 ### 🎲 [Board Games Collection](https://johnnyheggelund.github.io/brain-games/)  
 ### 📦 [Sokoban box puzzle game](https://johnnyheggelund.github.io/sokoban-box-puzzle/)  
-### 🏠 [City Builder simulation game](https://johnnyheggelund.github.io/city-builder-sim/)
+### 🏠 [City Builder simulation game](https://vanillahero.com/)
 
 ---
 
