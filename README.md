@@ -2,4 +2,4 @@
 
 ### 🔵 [Dam Europeisk](https://johnnyheggelund.github.io/dam-brettspill-europeisk/)  
 ### 🎲 [Brettspillsamling](hjernespill.html)  
-### 📦 [Sokoban Bokspuslespill](sokoban.html)  
+### 📦 [Sokoban Bokspuslespill](https://johnnyheggelund.github.io/sokoban-box-puzzle-game/)  
