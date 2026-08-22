@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%22 y=%2275%22 font-size=%2280%22 text-anchor=%22middle%22>%F0%9F%93%A1</text></svg>">
     <style>
         * { box-sizing: border-box; }
         body {
@@ -87,7 +86,7 @@
         }
         .badge-online { background: rgba(46, 160, 67, 0.2); color: #3fb950; border: 1px solid #2ea043; }
         .card-ip { font-family: monospace; color: #8b949e; font-size: 13px; }
-        
+
         #progress {
             font-size: 12px;
             color: #8b949e;
@@ -113,7 +112,7 @@
 </div>
 
 <script>
-    // Portene du bruker på maskinene dine
+
     const KNOWN_PORTS = [
         { port: 6661, name: "🎨 XL Image Generator", defaultIcon: "🎨" },
         { port: 7071, name: "🖥️ Code History Vault", defaultIcon: "🖥️" },
@@ -124,10 +123,9 @@
     async function checkService(ip, portObj) {
         const url = `http://${ip}:${portObj.port}`;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1200); // 1.2s timeout per sjekk
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
 
         try {
-            // mode: 'no-cors' gjør at vi får vite om serveren svarer selv om den har CORS blokkering
             await fetch(url, { mode: 'no-cors', signal: controller.signal });
             clearTimeout(timeoutId);
             return { ip, port: portObj.port, name: portObj.name, url };
@@ -150,7 +148,6 @@
         const foundNodes = [];
         const promises = [];
 
-        // Generer sjekker for 10.0.0.1 til 10.0.0.254 for alle portene dine
         for (let i = 1; i <= 254; i++) {
             const ip = `${prefix}${i}`;
             KNOWN_PORTS.forEach(portObj => {
@@ -176,8 +173,7 @@
 
     function addNodeCard(node) {
         const grid = document.getElementById('nodeGrid');
-        
-        // Sjekk om kortet allerede finnes
+
         if (document.getElementById(`node-${node.ip}-${node.port}`)) return;
 
         const a = document.createElement('a');
@@ -197,7 +193,6 @@
         grid.appendChild(a);
     }
 
-    // Auto-start skann når du åpner fila
     window.onload = () => {
         startScan();
     };
