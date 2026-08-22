@@ -112,18 +112,18 @@
 </div>
 
 <script>
-
     const KNOWN_PORTS = [
-        { port: 6661, name: "🎨 XL Image Generator", defaultIcon: "🎨" },
-        { port: 7071, name: "🖥️ Code History Vault", defaultIcon: "🖥️" },
-        { port: 5005, name: "🎙️ Podcast Player", defaultIcon: "🎙️" },
-        { port: 5001, name: "🤖 AI Assistant", defaultIcon: "🤖" },
+        { port: 8096, name: "🎬 Jellyfin Server", defaultIcon: "🍿" },
+        { port: 6661, name: "🎨 Universal Studio Multi-GPU", defaultIcon: "⚡" },
+        { port: 5000, name: "🖼️ SD 1.5 Studio", defaultIcon: "🎨" },
+        { port: 5001, name: "🤖 Ollama AI Server", defaultIcon: "🧠" }
     ];
 
     async function checkService(ip, portObj) {
         const url = `http://${ip}:${portObj.port}`;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1200);
+        // Økt timeout til 2.5 sekunder for å tåle Wi-Fi og svarmoduser
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
 
         try {
             await fetch(url, { mode: 'no-cors', signal: controller.signal });
@@ -135,6 +135,24 @@
         }
     }
 
+    // Hjelpefunksjon for å kjøre i kontrollert puljestørrelse (Batching)
+    async function mapConcurrent(items, limit, fn) {
+        const results = [];
+        const executing = [];
+        for (const item of items) {
+            const p = Promise.resolve().then(() => fn(item));
+            results.push(p);
+            if (limit <= items.length) {
+                const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+                executing.push(e);
+                if (executing.length >= limit) {
+                    await Promise.race(executing);
+                }
+            }
+        }
+        return Promise.all(results);
+    }
+
     async function startScan() {
         const prefix = document.getElementById('ipPrefix').value.trim();
         const grid = document.getElementById('nodeGrid');
@@ -143,25 +161,25 @@
 
         grid.innerHTML = '';
         scanBtn.disabled = true;
-        progress.innerText = "Skanner IP-er fra 1 til 254 på valgte porter...";
+        progress.innerText = "Skanner nettverk i kontrollerte puljer...";
 
-        const foundNodes = [];
-        const promises = [];
-
+        // Lager en liste over alle sjekker som skal utføres
+        const tasks = [];
         for (let i = 1; i <= 254; i++) {
             const ip = `${prefix}${i}`;
             KNOWN_PORTS.forEach(portObj => {
-                promises.push(
-                    checkService(ip, portObj).then(result => {
-                        if (result) {
-                            addNodeCard(result);
-                        }
-                    })
-                );
+                tasks.push({ ip, portObj });
             });
         }
 
-        await Promise.all(promises);
+        // Kjører maks 40 forespørsler parallelt. 
+        // Dette hindrer nettleseren fra å kvele sin egen tilkoblingskø!
+        await mapConcurrent(tasks, 40, async (task) => {
+            const result = await checkService(task.ip, task.portObj);
+            if (result) {
+                addNodeCard(result);
+            }
+        });
 
         progress.innerText = "Skanning fullført!";
         scanBtn.disabled = false;
