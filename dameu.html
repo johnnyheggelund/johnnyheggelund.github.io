@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dam Euro">
+  <title>Dam Europeisk</title>
+
+  <style>
+    :root {
+      --bg-color: #1e272e;
+      --board-dark: #57606f;
+      --board-light: #f1f2f6;
+      --piece-player: #f1f2f6;
+      --piece-ai: #ff4757;
+      --highlight-move: rgba(46, 213, 115, 0.6);
+      --highlight-select: #eccc68;
+      --error-color: #ff4757;
+    }
+    * {
+      box-sizing: border-box;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background-color: var(--bg-color);
+      color: white;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+    #game-container {
+      width: 100%;
+      max-width: 90vh;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .status-panel {
+      font-size: 1.1rem;
+      font-weight: 600;
+      background: rgba(0,0,0,0.3);
+      padding: 8px 16px;
+      border-radius: 20px;
+    }
+    .btn {
+      background: #3ed676;
+      color: #1e272e;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: transform 0.1s;
+    }
+    .btn:active {
+      transform: scale(0.95);
+    }
+    #board-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .modal {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(30, 39, 46, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      border-radius: 8px;
+    }
+    .modal h2 { margin-bottom: 5px; }
+    .modal p { color: #a4b0be; margin-bottom: 20px; }
+    .hidden { display: none !important; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+    .shake-anim {
+      animation: shake 0.3s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <header>
+    <button class="btn" id="btn-menu">Meny</button>
+    <div class="status-panel" id="status-text">...</div>
+    <div style="font-size: 0.9rem; color: #a4b0be;" id="level-display">Nivå 1</div>
+  </header>
+
+  <div id="board-wrapper">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="main-menu" class="modal">
+      <h1 id="menu-title" style="margin-bottom:0;">DAM EUROPEISK</h1>
+      <p id="menu-subtitle">Laget av Johnny Heggelund</p>
+      <button class="btn" id="btn-start" style="font-size: 1.2rem; padding: 12px 24px; margin-bottom: 10px;">Start Spill</button>
+      <button class="btn hidden" id="btn-continue" style="font-size: 1rem; padding: 10px 20px; margin-bottom: 10px; background: #eccc68;">Fortsett</button>
+      <button class="btn" id="btn-reset" style="background: transparent; color: #a4b0be; text-decoration: underline;">Nullstill Fremdrift</button>
+    </div>
+
+    <div id="game-over-modal" class="modal hidden">
+      <h2 id="go-title">Spillet er slutt</h2>
+      <p id="go-desc"></p>
+      <button class="btn" id="btn-restart" style="font-size: 1.1rem; padding: 10px 20px;">Neste Nivå</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Global tilstand og konstanter
+  const BOARD_SIZE = 8;
+  const P_PLAYER = 1;
+  const P_AI = 2;
+  const EMPTY = 0;
+
+  let canvas, ctx;
+  let tileSize = 0;
+  let board = [];
+  let turn = P_PLAYER;
+  let selected = null;
+  let validMoves = [];
+  let pendingJump = null;
+  let level = 1;
+  let isAnimating = false;
+  let halfMoves = 0;
+
+  // Web Audio Synthesizer
+  const AudioSys = {
+    ctx: null,
+    setup() {
+      if (!this.ctx) {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    },
+    playTone(freq, duration, type = 'sine') {
+      if (!this.ctx) return;
+      try {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+      } catch (e) {}
+    },
+    click() { this.playTone(400, 0.05); },
+    move() { this.playTone(300, 0.08); },
+    capture() { this.playTone(150, 0.15, 'triangle'); },
+    win() {
+      this.playTone(523, 0.1);
+      setTimeout(() => this.playTone(659, 0.1), 100);
+      setTimeout(() => this.playTone(783, 0.2), 200);
+    },
+    lose() {
+      this.playTone(300, 0.15);
+      setTimeout(() => this.playTone(200, 0.3, 'sawtooth'), 150);
+    }
+  };
+
+  const isValidPos = (r, c) => r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
+
+  const cloneBoard = (b) => b.map(row => row.map(p => p ? { ...p } : null));
+
+  const initBoard = () => {
+    board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        if ((r + c) % 2 === 1) {
+          if (r < 3) board[r][c] = { owner: P_AI, isKing: false };
+          else if (r > 4) board[r][c] = { owner: P_PLAYER, isKing: false };
+        }
+      }
+    }
+  };
+
+  const setStatus = (txt) => {
+    document.getElementById('status-text').innerText = txt;
+  };
+
+  const triggerShake = () => {
+    const el = document.getElementById('board-wrapper');
+    el.classList.remove('shake-anim');
+    void el.offsetWidth;
+    el.classList.add('shake-anim');
+  };
+
+  // Regelgenerator
+  const getMovesForPiece = (b, r, c, mustJumpPiece = null) => {
+    const p = b[r][c];
+    if (!p) return [];
+    if (mustJumpPiece && (mustJumpPiece.r !== r || mustJumpPiece.c !== c)) return [];
+
+    let moves = [];
+    const isKing = p.isKing;
+    const enemy = p.owner === P_PLAYER ? P_AI : P_PLAYER;
+    const dirs = isKing ? [[1,1],[1,-1],[-1,1],[-1,-1]] : (p.owner === P_PLAYER ? [[-1,1],[-1,-1]] : [[1,1],[1,-1]]);
+    const captureDirs = [[1,1],[1,-1],[-1,1],[-1,-1]];
+
+    if (isKing) {
+      for (let [dr, dc] of captureDirs) {
+        let nr = r + dr, nc = c + dc;
+        let foundEnemy = null;
+        while (isValidPos(nr, nc)) {
+          if (b[nr][nc] !== null) {
+            if (b[nr][nc].owner === enemy && !foundEnemy) {
+              foundEnemy = { r: nr, c: nc };
+            } else {
+              break;
+            }
+          } else if (foundEnemy) {
+            moves.push({ fromR: r, fromC: c, toR: nr, toC: nc, isCapture: true, capR: foundEnemy.r, capC: foundEnemy.c });
+          }
+          nr += dr; nc += dc;
+        }
+      }
+    } else {
+      for (let [dr, dc] of captureDirs) {
+        let nr = r + dr, nc = c + dc;
+        let landingR = r + 2 * dr, landingC = c + 2 * dc;
+        if (isValidPos(landingR, landingC) && b[nr][nc] && b[nr][nc].owner === enemy && b[landingR][landingC] === null) {
+          moves.push({ fromR: r, fromC: c, toR: landingR, toC: landingC, isCapture: true, capR: nr, capC: nc });
+        }
+      }
+    }
+
+    if (moves.length === 0 && !mustJumpPiece) {
+      if (isKing) {
+        for (let [dr, dc] of dirs) {
+          let nr = r + dr, nc = c + dc;
+          while (isValidPos(nr, nc) && b[nr][nc] === null) {
+            moves.push({ fromR: r, fromC: c, toR: nr, toC: nc, isCapture: false });
+            nr += dr; nc += dc;
+          }
+        }
+      } else {
+        for (let [dr, dc] of dirs) {
+          let nr = r + dr, nc = c + dc;
+          if (isValidPos(nr, nc) && b[nr][nc] === null) {
+            moves.push({ fromR: r, fromC: c, toR: nr, toC: nc, isCapture: false });
+          }
+        }
+      }
+    }
+
+    return moves;
+  };
+
+  const getMoves = (b, owner, mustJumpPiece = null) => {
+    let allMoves = [];
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        if (b[r][c] && b[r][c].owner === owner) {
+          allMoves.push(...getMovesForPiece(b, r, c, mustJumpPiece));
+        }
+      }
+    }
+
+    const hasCaptures = allMoves.some(m => m.isCapture);
+    if (!hasCaptures) return allMoves;
+
+    const countSeq = (boardState, m) => {
+      const nb = cloneBoard(boardState);
+      const p = nb[m.fromR][m.fromC];
+      nb[m.toR][m.toC] = p;
+      nb[m.fromR][m.fromC] = null;
+      if (m.isCapture) nb[m.capR][m.capC] = null;
+
+      let nextJumps = [];
+      if (m.isCapture) {
+        nextJumps = getMovesForPiece(nb, m.toR, m.toC, { r: m.toR, c: m.toC }).filter(x => x.isCapture);
+      }
+      if (nextJumps.length === 0) return 1;
+
+      let maxSub = 0;
+      for (let nj of nextJumps) {
+        maxSub = Math.max(maxSub, countSeq(nb, nj));
+      }
+      return 1 + maxSub;
+    };
+
+    let maxScore = 0;
+    const scored = allMoves.filter(m => m.isCapture).map(m => {
+      const s = countSeq(b, m);
+      if (s > maxScore) maxScore = s;
+      return { m, s };
+    });
+
+    return scored.filter(item => item.s === maxScore).map(item => item.m);
+  };
+
+  // AI Motoren (Minimax)
+  const getConfig = (lvl) => {
+    return {
+      depth: Math.min(5, Math.floor(lvl / 8) + 2),
+      randomness: Math.max(0, 0.35 - (lvl * 0.01))
+    };
+  };
+
+  const applyMoveSim = (b, m) => {
+    const nb = cloneBoard(b);
+    const p = nb[m.fromR][m.fromC];
+    nb[m.toR][m.toC] = p;
+    nb[m.fromR][m.fromC] = null;
+    if (m.isCapture) {
+      nb[m.capR][m.capC] = null;
+    }
+    if ((p.owner === P_PLAYER && m.toR === 0) || (p.owner === P_AI && m.toR === BOARD_SIZE - 1)) {
+      p.isKing = true;
+    }
+    return nb;
+  };
+
+  const evaluateBoard = (b) => {
+    let score = 0;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const p = b[r][c];
+        if (p) {
+          let val = p.isKing ? 35 : 10;
+          val += (p.owner === P_AI ? r : (7 - r));
+          if (c === 0 || c === 7) val += 2;
+          if (p.owner === P_AI) score += val;
+          else score -= val;
+        }
+      }
+    }
+    return score;
+  };
+
+  const minimax = (b, depth, alpha, beta, isMax, pendingJumpPiece = null) => {
+    if (depth <= 0) return evaluateBoard(b);
+
+    const owner = isMax ? P_AI : P_PLAYER;
+    let moves = getMoves(b, owner, pendingJumpPiece);
+
+    if (moves.length === 0) {
+      return isMax ? -10000 : 10000;
+    }
+
+    if (isMax) {
+      let maxEval = -Infinity;
+      for (let m of moves) {
+        const nb = applyMoveSim(b, m);
+        let nextJump = null;
+        if (m.isCapture) {
+          const extraJumps = getMovesForPiece(nb, m.toR, m.toC, { r: m.toR, c: m.toC }).filter(x => x.isCapture);
+          if (extraJumps.length > 0) nextJump = { r: m.toR, c: m.toC };
+        }
+        let evalVal = nextJump
+          ? minimax(nb, depth - 1, alpha, beta, true, nextJump)
+          : minimax(nb, depth - 1, alpha, beta, false, null);
+
+        maxEval = Math.max(maxEval, evalVal);
+        alpha = Math.max(alpha, evalVal);
+        if (beta <= alpha) break;
+      }
+      return maxEval;
+    } else {
+      let minEval = Infinity;
+      for (let m of moves) {
+        const nb = applyMoveSim(b, m);
+        let nextJump = null;
+        if (m.isCapture) {
+          const extraJumps = getMovesForPiece(nb, m.toR, m.toC, { r: m.toR, c: m.toC }).filter(x => x.isCapture);
+          if (extraJumps.length > 0) nextJump = { r: m.toR, c: m.toC };
+        }
+        let evalVal = nextJump
+          ? minimax(nb, depth - 1, alpha, beta, false, nextJump)
+          : minimax(nb, depth - 1, alpha, beta, true, null);
+
+        minEval = Math.min(minEval, evalVal);
+        beta = Math.min(beta, evalVal);
+        if (beta <= alpha) break;
+      }
+      return minEval;
+    }
+  };
+
+  const calculateBestAIMove = () => {
+    const moves = getMoves(board, P_AI, pendingJump);
+    if (moves.length === 0) return null;
+
+    const config = getConfig(level);
+    let bestMove = moves[0];
+    let bestScore = -Infinity;
+
+    if (Math.random() < config.randomness) {
+      bestMove = moves[Math.floor(Math.random() * moves.length)];
+    } else {
+      for (let m of moves) {
+        const nb = applyMoveSim(board, m);
+        let nextJump = null;
+        if (m.isCapture) {
+          const extraJumps = getMovesForPiece(nb, m.toR, m.toC, { r: m.toR, c: m.toC }).filter(x => x.isCapture);
+          if (extraJumps.length > 0) nextJump = { r: m.toR, c: m.toC };
+        }
+        let score = nextJump
+          ? minimax(nb, config.depth - 1, -Infinity, Infinity, true, nextJump)
+          : minimax(nb, config.depth - 1, -Infinity, Infinity, false, null);
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = m;
+        }
+      }
+    }
+    return bestMove;
+  };
+
+  const triggerAI = () => {
+    const moves = getMoves(board, P_AI, pendingJump);
+    if (moves.length === 0) {
+      checkWinState();
+      return;
+    }
+
+    setStatus("Motstander tenker...");
+
+    setTimeout(() => {
+      const bestMove = calculateBestAIMove();
+      if (bestMove) {
+        animateMove(bestMove);
+      } else {
+        checkWinState();
+      }
+    }, 100);
+  };
+
+  const animateMove = (m) => {
+    isAnimating = true;
+    const p = board[m.fromR][m.fromC];
+    board[m.fromR][m.fromC] = null;
+
+    const startX = m.fromC * tileSize + tileSize / 2;
+    const startY = m.fromR * tileSize + tileSize / 2;
+    const endX = m.toC * tileSize + tileSize / 2;
+    const endY = m.toR * tileSize + tileSize / 2;
+
+    const startTime = performance.now();
+    const duration = 220;
+
+    const animStep = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      
+      render();
+
+      const curX = startX + (endX - startX) * progress;
+      const curY = startY + (endY - startY) * progress;
+      drawPiece(curX, curY, p, false);
+
+      if (progress < 1) {
+        requestAnimationFrame(animStep);
+      } else {
+        board[m.toR][m.toC] = p;
+        if (m.isCapture) {
+          board[m.capR][m.capC] = null;
+          AudioSys.capture();
+        } else {
+          AudioSys.move();
+        }
+
+        if ((p.owner === P_PLAYER && m.toR === 0) || (p.owner === P_AI && m.toR === BOARD_SIZE - 1)) {
+          p.isKing = true;
+        }
+
+        let extraJumps = [];
+        if (m.isCapture) {
+          extraJumps = getMovesForPiece(board, m.toR, m.toC, { r: m.toR, c: m.toC }).filter(x => x.isCapture);
+        }
+
+        if (extraJumps.length > 0) {
+          pendingJump = { r: m.toR, c: m.toC };
+          selected = { r: m.toR, c: m.toC };
+          validMoves = extraJumps;
+          isAnimating = false;
+
+          if (turn === P_AI) {
+            triggerAI();
+          } else {
+            setStatus("Du må slå igjen!");
+            render();
+          }
+        } else {
+          pendingJump = null;
+          selected = null;
+          validMoves = [];
+          isAnimating = false;
+          halfMoves++;
+          turn = (turn === P_PLAYER) ? P_AI : P_PLAYER;
+          
+          render();
+          if (!checkWinState()) {
+            if (turn === P_AI) {
+              triggerAI();
+            } else {
+              setStatus("Din tur");
+            }
+          }
+        }
+      }
+    };
+
+    requestAnimationFrame(animStep);
+  };
+
+  const checkWinState = () => {
+    const playerMoves = getMoves(board, P_PLAYER, pendingJump && turn === P_PLAYER ? pendingJump : null);
+    const aiMoves = getMoves(board, P_AI, pendingJump && turn === P_AI ? pendingJump : null);
+
+    let pCount = 0, aiCount = 0;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        if (board[r][c]?.owner === P_PLAYER) pCount++;
+        if (board[r][c]?.owner === P_AI) aiCount++;
+      }
+    }
+
+    if (pCount === 0 || playerMoves.length === 0) {
+      showGameOver(false);
+      return true;
+    }
+    if (aiCount === 0 || aiMoves.length === 0) {
+      showGameOver(true);
+      return true;
+    }
+    return false;
+  };
+
+  const showGameOver = (playerWon) => {
+    const modal = document.getElementById('game-over-modal');
+    modal.classList.remove('hidden');
+    document.getElementById('go-title').innerText = playerWon ? "Du Vant!" : "Datamaskinen Vant";
+    document.getElementById('go-desc').innerText = playerWon ? "Fantastisk spilt!" : "Bedre lykke neste gang.";
+
+    if (playerWon) {
+      AudioSys.win();
+      level = Math.min(50, level + 1);
+      localStorage.setItem('damEuroLevel8x8', level);
+      GameController.updateMenuUI();
+    } else {
+      AudioSys.lose();
+    }
+    document.getElementById('btn-continue').classList.add('hidden');
+  };
+
+  const handleInput = (clientX, clientY) => {
+    if (isAnimating || turn !== P_PLAYER) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const c = Math.floor((clientX - rect.left) / tileSize);
+    const r = Math.floor((clientY - rect.top) / tileSize);
+
+    if (!isValidPos(r, c)) return;
+
+    const allPlayerMoves = getMoves(board, P_PLAYER, pendingJump);
+    const mustCapture = allPlayerMoves.some(m => m.isCapture);
+
+    if (selected) {
+      const targetMove = validMoves.find(m => m.toR === r && m.toC === c);
+      if (targetMove) {
+        animateMove(targetMove);
+        return;
+      }
+    }
+
+    const p = board[r][c];
+    if (p && p.owner === P_PLAYER) {
+      const pieceMoves = allPlayerMoves.filter(m => m.fromR === r && m.fromC === c);
+      
+      if (pieceMoves.length > 0) {
+        selected = { r, c };
+        validMoves = pieceMoves;
+        AudioSys.click();
+      } else {
+        if (mustCapture) setStatus("Du MÅ slå!");
+        triggerShake();
+        AudioSys.lose();
+      }
+    } else {
+      if (!pendingJump) {
+        selected = null;
+        validMoves = [];
+      }
+    }
+    render();
+  };
+
+  // Tegnefunksjoner
+  const drawPiece = (x, y, p, isSelected) => {
+    const radius = tileSize * 0.38;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+
+    ctx.fillStyle = p.owner === P_PLAYER ? '#f1f2f6' : '#ff4757';
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 3;
+    ctx.fill();
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = isSelected ? '#eccc68' : (p.owner === P_PLAYER ? '#ced6e0' : '#ff6b81');
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 0.7, 0, Math.PI * 2);
+    ctx.strokeStyle = p.owner === P_PLAYER ? '#dcdde1' : '#ed4c67';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    if (p.isKing) {
+      ctx.fillStyle = '#f1c40f';
+      ctx.font = `${tileSize * 0.4}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('★', x, y);
+    }
+    ctx.restore();
+  };
+
+  const render = () => {
+    if (!ctx || !board || board.length === 0) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const isDark = (r + c) % 2 === 1;
+        ctx.fillStyle = isDark ? '#57606f' : '#f1f2f6';
+        ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+
+        if (selected && selected.r === r && selected.c === c) {
+          ctx.fillStyle = 'rgba(236, 204, 104, 0.5)';
+          ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+        }
+      }
+    }
+
+    for (let m of validMoves) {
+      ctx.beginPath();
+      ctx.arc(m.toC * tileSize + tileSize / 2, m.toR * tileSize + tileSize / 2, tileSize * 0.18, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(46, 213, 115, 0.7)';
+      ctx.fill();
+    }
+
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const p = board[r][c];
+        if (p) {
+          const isSel = selected && selected.r === r && selected.c === c;
+          drawPiece(c * tileSize + tileSize / 2, r * tileSize + tileSize / 2, p, isSel);
+        }
+      }
+    }
+  };
+
+  // Game Controller
+  const GameController = {
+    init() {
+      canvas = document.getElementById('gameCanvas');
+      ctx = canvas.getContext('2d');
+
+      initBoard();
+      this.resize();
+      window.addEventListener('resize', () => this.resize());
+
+      canvas.addEventListener('click', (e) => handleInput(e.clientX, e.clientY));
+      canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 0) {
+          handleInput(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+
+      document.getElementById('btn-start').addEventListener('click', () => this.start(true));
+      document.getElementById('btn-continue').addEventListener('click', () => this.start(false));
+      document.getElementById('btn-menu').addEventListener('click', () => this.showMenu());
+      document.getElementById('btn-restart').addEventListener('click', () => {
+        document.getElementById('game-over-modal').classList.add('hidden');
+        this.start(true);
+      });
+      document.getElementById('btn-reset').addEventListener('click', () => this.resetLevel());
+
+      this.updateMenuUI();
+      this.showMenu();
+    },
+    resize() {
+      const wrapper = document.getElementById('board-wrapper');
+      const size = wrapper.clientWidth;
+      canvas.width = size;
+      canvas.height = size;
+      tileSize = size / BOARD_SIZE;
+      render();
+    },
+    showMenu() {
+      document.getElementById('main-menu').classList.remove('hidden');
+      document.getElementById('menu-title').innerText = "DAM EUROPEISK";
+      document.getElementById('menu-subtitle').innerText = "Laget av Johnny Heggelund";
+      if (board.length > 0 && !isAnimating) {
+        document.getElementById('btn-continue').classList.remove('hidden');
+      }
+    },
+    start(isNew) {
+      AudioSys.setup();
+      document.getElementById('main-menu').classList.add('hidden');
+      if (isNew) {
+        level = parseInt(localStorage.getItem('damEuroLevel8x8')) || 1;
+        turn = P_PLAYER;
+        halfMoves = 0;
+        selected = null;
+        pendingJump = null;
+        validMoves = [];
+        initBoard();
+        setStatus("Din tur");
+        render();
+      }
+      document.getElementById('level-display').innerText = `Nivå ${level}`;
+    },
+    resetLevel() {
+      if (confirm("Er du sikker på at du vil slette fremdriften og starte på Nivå 1?")) {
+        localStorage.setItem('damEuroLevel8x8', 1);
+        level = 1;
+        this.updateMenuUI();
+      }
+    },
+    updateMenuUI() {
+      const savedLvl = localStorage.getItem('damEuroLevel8x8') || 1;
+      document.getElementById('menu-subtitle').innerText = `Klassisk (8x8) - Nivå ${savedLvl}`;
+    }
+  };
+
+  window.addEventListener('DOMContentLoaded', () => {
+    GameController.init();
+  });
+</script>
+</body>
+</html>
