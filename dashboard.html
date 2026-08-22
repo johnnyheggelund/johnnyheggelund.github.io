@@ -86,7 +86,7 @@
         }
         .badge-online { background: rgba(46, 160, 67, 0.2); color: #3fb950; border: 1px solid #2ea043; }
         .card-ip { font-family: monospace; color: #8b949e; font-size: 13px; }
-
+        
         #progress {
             font-size: 12px;
             color: #8b949e;
@@ -112,20 +112,21 @@
 </div>
 
 <script>
+    // Portene du bruker på maskinene dine
     const KNOWN_PORTS = [
-        { port: 8096, name: "🎬 Jellyfin Server", defaultIcon: "🍿" },
-        { port: 6661, name: "🎨 Universal Studio Multi-GPU", defaultIcon: "⚡" },
-        { port: 5000, name: "🖼️ SD 1.5 Studio", defaultIcon: "🎨" },
-        { port: 5001, name: "🤖 Ollama AI Server", defaultIcon: "🧠" }
+        { port: 6661, name: "🎨 XL Image Generator", defaultIcon: "🎨" },
+        { port: 7071, name: "🖥️ Code History Vault", defaultIcon: "🖥️" },
+        { port: 5005, name: "🎙️ Podcast Player", defaultIcon: "🎙️" },
+        { port: 5001, name: "🤖 AI Assistant", defaultIcon: "🤖" },
     ];
 
     async function checkService(ip, portObj) {
         const url = `http://${ip}:${portObj.port}`;
         const controller = new AbortController();
-        // Økt timeout til 2.5 sekunder for å tåle Wi-Fi og svarmoduser
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const timeoutId = setTimeout(() => controller.abort(), 1200); // 1.2s timeout per sjekk
 
         try {
+            // mode: 'no-cors' gjør at vi får vite om serveren svarer selv om den har CORS blokkering
             await fetch(url, { mode: 'no-cors', signal: controller.signal });
             clearTimeout(timeoutId);
             return { ip, port: portObj.port, name: portObj.name, url };
@@ -133,24 +134,6 @@
             clearTimeout(timeoutId);
             return null;
         }
-    }
-
-    // Hjelpefunksjon for å kjøre i kontrollert puljestørrelse (Batching)
-    async function mapConcurrent(items, limit, fn) {
-        const results = [];
-        const executing = [];
-        for (const item of items) {
-            const p = Promise.resolve().then(() => fn(item));
-            results.push(p);
-            if (limit <= items.length) {
-                const e = p.then(() => executing.splice(executing.indexOf(e), 1));
-                executing.push(e);
-                if (executing.length >= limit) {
-                    await Promise.race(executing);
-                }
-            }
-        }
-        return Promise.all(results);
     }
 
     async function startScan() {
@@ -161,25 +144,26 @@
 
         grid.innerHTML = '';
         scanBtn.disabled = true;
-        progress.innerText = "Skanner nettverk i kontrollerte puljer...";
+        progress.innerText = "Skanner IP-er fra 1 til 254 på valgte porter...";
 
-        // Lager en liste over alle sjekker som skal utføres
-        const tasks = [];
+        const foundNodes = [];
+        const promises = [];
+
+        // Generer sjekker for 10.0.0.1 til 10.0.0.254 for alle portene dine
         for (let i = 1; i <= 254; i++) {
             const ip = `${prefix}${i}`;
             KNOWN_PORTS.forEach(portObj => {
-                tasks.push({ ip, portObj });
+                promises.push(
+                    checkService(ip, portObj).then(result => {
+                        if (result) {
+                            addNodeCard(result);
+                        }
+                    })
+                );
             });
         }
 
-        // Kjører maks 40 forespørsler parallelt. 
-        // Dette hindrer nettleseren fra å kvele sin egen tilkoblingskø!
-        await mapConcurrent(tasks, 40, async (task) => {
-            const result = await checkService(task.ip, task.portObj);
-            if (result) {
-                addNodeCard(result);
-            }
-        });
+        await Promise.all(promises);
 
         progress.innerText = "Skanning fullført!";
         scanBtn.disabled = false;
@@ -191,7 +175,8 @@
 
     function addNodeCard(node) {
         const grid = document.getElementById('nodeGrid');
-
+        
+        // Sjekk om kortet allerede finnes
         if (document.getElementById(`node-${node.ip}-${node.port}`)) return;
 
         const a = document.createElement('a');
@@ -211,6 +196,7 @@
         grid.appendChild(a);
     }
 
+    // Auto-start skann når du åpner fila
     window.onload = () => {
         startScan();
     };
