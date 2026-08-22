@@ -1,5 +1,5 @@
 # Gratis Norske Spill
 
-### 🔵 [Dam Europeisk](https://johnnyheggelund.github.io/dam-brettspill-europeisk/)  
+### 🔵 [Dam Europeisk](dameu.html)  
 ### 🎲 [Brettspillsamling](hjernespill.html)  
 ### 📦 [Sokoban Bokspuslespill](https://johnnyheggelund.github.io/sokoban-box-puzzle-game/)  
