@@ -145,7 +145,6 @@
   const BOARD_SIZE = 8;
   const P_PLAYER = 1;
   const P_AI = 2;
-  const EMPTY = 0;
 
   let canvas, ctx;
   let tileSize = 0;
@@ -156,7 +155,7 @@
   let pendingJump = null;
   let level = 1;
   let isAnimating = false;
-  let halfMoves = 0;
+  let gameInProgress = false;
 
   // Web Audio Synthesizer
   const AudioSys = {
@@ -524,7 +523,6 @@
           selected = null;
           validMoves = [];
           isAnimating = false;
-          halfMoves++;
           turn = (turn === P_PLAYER) ? P_AI : P_PLAYER;
           
           render();
@@ -566,6 +564,7 @@
   };
 
   const showGameOver = (playerWon) => {
+    gameInProgress = false;
     const modal = document.getElementById('game-over-modal');
     modal.classList.remove('hidden');
     document.getElementById('go-title').innerText = playerWon ? "Du Vant!" : "Datamaskinen Vant";
@@ -575,15 +574,16 @@
       AudioSys.win();
       level = Math.min(50, level + 1);
       localStorage.setItem('damEuroLevel8x8', level);
-      GameController.updateMenuUI();
+      document.getElementById('btn-restart').innerText = "Neste Nivå";
     } else {
       AudioSys.lose();
+      document.getElementById('btn-restart').innerText = "Prøv Igjen";
     }
     document.getElementById('btn-continue').classList.add('hidden');
   };
 
   const handleInput = (clientX, clientY) => {
-    if (isAnimating || turn !== P_PLAYER) return;
+    if (isAnimating || turn !== P_PLAYER || !gameInProgress) return;
 
     const rect = canvas.getBoundingClientRect();
     const c = Math.floor((clientX - rect.left) / tileSize);
@@ -699,7 +699,8 @@
       canvas = document.getElementById('gameCanvas');
       ctx = canvas.getContext('2d');
 
-      initBoard();
+      level = parseInt(localStorage.getItem('damEuroLevel8x8')) || 1;
+
       this.resize();
       window.addEventListener('resize', () => this.resize());
 
@@ -719,7 +720,6 @@
       });
       document.getElementById('btn-reset').addEventListener('click', () => this.resetLevel());
 
-      this.updateMenuUI();
       this.showMenu();
     },
     resize() {
@@ -732,33 +732,42 @@
     },
     showMenu() {
       document.getElementById('main-menu').classList.remove('hidden');
-      document.getElementById('menu-title').innerText = "DAM EUROPEISK";
-      document.getElementById('menu-subtitle').innerText = "Laget av Johnny Heggelund";
-      if (board.length > 0 && !isAnimating) {
-        document.getElementById('btn-continue').classList.remove('hidden');
+      this.updateMenuUI();
+
+      const btnContinue = document.getElementById('btn-continue');
+      if (gameInProgress && !isAnimating) {
+        btnContinue.classList.remove('hidden');
+      } else {
+        btnContinue.classList.add('hidden');
       }
     },
     start(isNew) {
       AudioSys.setup();
       document.getElementById('main-menu').classList.add('hidden');
-      if (isNew) {
-        level = parseInt(localStorage.getItem('damEuroLevel8x8')) || 1;
+      
+      level = parseInt(localStorage.getItem('damEuroLevel8x8')) || 1;
+
+      if (isNew || !gameInProgress) {
         turn = P_PLAYER;
-        halfMoves = 0;
         selected = null;
         pendingJump = null;
         validMoves = [];
         initBoard();
+        gameInProgress = true;
         setStatus("Din tur");
-        render();
       }
+
       document.getElementById('level-display').innerText = `Nivå ${level}`;
+      render();
     },
     resetLevel() {
       if (confirm("Er du sikker på at du vil slette fremdriften og starte på Nivå 1?")) {
         localStorage.setItem('damEuroLevel8x8', 1);
         level = 1;
+        gameInProgress = false;
         this.updateMenuUI();
+        const btnContinue = document.getElementById('btn-continue');
+        btnContinue.classList.add('hidden');
       }
     },
     updateMenuUI() {
