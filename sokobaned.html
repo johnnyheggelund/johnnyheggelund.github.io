@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sokoban Level Designer</title>
+<style>
+:root {
+--bg-color: #1a1a1a;
+--text-color: #e0e0e0;
+--border-color: #444;
+--editor-bg: #222;
+--wall-color: #4a4a4a;
+--floor-color: #2a2a2a;
+--box-color: #a5682a;
+--goal-color: #4a6d4d;
+--player-color: #3a86ff;
+--box-on-goal-color: #5cb85c;
+--blue-button: #3a86ff;
+--blue-button-hover: #4c91ff;
+--green-button: #28a745;
+--green-button-hover: #2ebf4d;
+}
+* {
+box-sizing: border-box;
+touch-action: manipulation;
+-webkit-user-select: none;
+user-select: none;
+-webkit-touch-callout: none;
+}
+body, html {
+margin: 0;
+padding: 0;
+width: 100%;
+height: 100vh;
+height: 100dvh;
+font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
+background-color: var(--bg-color);
+color: var(--text-color);
+overflow: hidden;
+display: flex;
+flex-direction: column;
+}
+.top-bar {
+padding: 10px 15px;
+background-color: var(--editor-bg);
+border-bottom: 1px solid var(--border-color);
+display: flex;
+align-items: center;
+gap: 2px;
+flex-shrink: 0;
+flex-wrap: wrap;
+}
+.top-bar label,
+.top-bar span {
+font-size: 16px;
+}
+.top-bar select,
+.top-bar button {
+background-color: #333;
+color: var(--text-color);
+border: 1px solid #555;
+padding: 8px 12px;
+font-size: 16px;
+border-radius: 4px;
+cursor: pointer;
+}
+.top-bar button:hover {
+background-color: #444;
+}
+input[type="file"] {
+display: none;
+}
+.file-label {
+background-color: var(--blue-button);
+color: white;
+padding: 8px 12px;
+border-radius: 4px;
+cursor: pointer;
+transition: background-color 0.2s;
+}
+.file-label:hover {
+background-color: var(--blue-button-hover);
+}
+#play-button {
+margin-left: auto;
+background-color: var(--green-button);
+color: white;
+border-color: var(--green-button);
+transition: background-color 0.2s;
+font-weight: bold;
+}
+#play-button:hover {
+background-color: var(--green-button-hover);
+}
+#main-container {
+display: flex;
+flex-direction: row;
+height: 100%;
+flex-grow: 1;
+min-height: 0;
+padding: 0;
+}
+.palette-panel {
+width: 130px;
+background-color: var(--editor-bg);
+border-right: 1px solid var(--border-color);
+display: flex;
+flex-direction: column;
+padding: 5px 2px;
+gap: 1px;
+flex-shrink: 0;
+overflow-y: auto;
+--tile-size: 40px;
+}
+.palette-title {
+text-align: center;
+margin: 0 0 10px 0;
+font-size: 18px;
+color: #aaa;
+}
+.tool {
+display: flex;
+flex-direction: column;
+align-items: center;
+cursor: pointer;
+padding: 10px 5px;
+border: 2px solid transparent;
+border-radius: 8px;
+color: var(--text-color);
+font-size: 15px;
+gap: 8px;
+user-select: none;
+-webkit-user-select: none;
+}
+.tool.selected {
+border-color: var(--blue-button);
+background-color: rgba(58, 134, 255, 0.15);
+}
+.editor-main-panel {
+display: flex;
+flex-direction: column;
+flex-grow: 1;
+overflow: hidden;
+}
+#visual-editor-container {
+flex-grow: 1;
+overflow: hidden;
+display: flex;
+align-items: center;
+justify-content: center;
+background-color: var(--bg-color);
+touch-action: none;
+padding: 20px;
+}
+#visual-grid {
+display: grid;
+border: 1px solid var(--border-color);
+background-color: var(--bg-color);
+touch-action: none;
+user-select: none;
+-webkit-user-select: none;
+}
+.tile {
+width: var(--tile-size);
+height: var(--tile-size);
+background-color: var(--floor-color);
+position: relative;
+box-sizing: border-box;
+}
+.tile.wall {
+background-color: var(--wall-color);
+}
+.tile.goal::before {
+content: '';
+position: absolute;
+top: 35%;
+left: 35%;
+width: 30%;
+height: 30%;
+background-color: var(--goal-color);
+border-radius: 50%;
+}
+.tile.player::after,
+.tile.box::after,
+.tile.box-on-goal::after {
+content: '';
+position: absolute;
+top: 2px;
+left: 2px;
+right: 2px;
+bottom: 2px;
+}
+.tile.player::after {
+background-color: var(--player-color);
+border-radius: 50%;
+}
+.tile.box::after {
+background-color: var(--box-color);
+border-radius: 3px;
+}
+.tile.box-on-goal::after {
+background-color: var(--box-on-goal-color);
+border-radius: 3px;
+}
+.ghost {
+opacity: 0.8;
+pointer-events: none;
+z-index: 10000;
+position: fixed;
+transform: translate(-50%, -50%);
+box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+.modal-overlay {
+position: fixed;
+top: 0; left: 0; width: 100%; height: 100%;
+background-color: rgba(0, 0, 0, 0.9);
+display: none;
+justify-content: center;
+align-items: center;
+z-index: 1000;
+}
+.modal-content {
+position: relative;
+width: 100%; height: 100%;
+max-width: 100%; max-height: 100%;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: flex-start;
+background-color: var(--bg-color);
+}
+.modal-header {
+width: 100%;
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 10px 15px;
+flex-shrink: 0;
+background-color: var(--editor-bg);
+border-bottom: 1px solid var(--border-color);
+}
+.close-button {
+font-size: 2.5rem;
+color: #ccc;
+background: none;
+border: none;
+cursor: pointer;
+line-height: 1;
+padding: 0;
+}
+.close-button:hover {
+color: white;
+}
+#reset-button {
+padding: 8px 16px;
+font-size: 16px;
+border-radius: 5px;
+cursor: pointer;
+background-color: var(--blue-button);
+color: white;
+border: none;
+}
+#reset-button:hover {
+background-color: var(--blue-button-hover);
+}
+#game-status {
+font-size: 20px;
+color: #ffc107;
+text-align: center;
+flex-grow: 1;
+font-weight: bold;
+margin: 0 15px;
+}
+#game-container {
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+width: 100%;
+flex-grow: 1;
+overflow: hidden;
+padding: 0;
+}
+#game-board {
+display: grid;
+border: 1px solid var(--border-color);
+touch-action: none;
+user-select: none;
+-webkit-user-select: none;
+}
+#error-status {
+font-size: 16px;
+color: #ffc107;
+margin-left: 20px;
+}
+</style>
+</head>
+<body>
+<div class="top-bar">
+<label for="file-input" class="file-label">📂</label>
+<input type="file" id="file-input" multiple accept=".txt,.sok">
+<span></span> <select id="file-selector"></select>
+<span></span> <select id="level-selector"></select>
+<span id="error-status"></span>
+<button id="export-button">Eksporter</button>
+<button id="play-button">Start spill</button>
+</div>
+<div id="main-container">
+<div class="palette-panel" id="palette">
+<div class="tool selected" data-tool="#"><div class="tile wall"></div> Vegg</div>
+<div class="tool" data-tool="$"><div class="tile box"></div> Kasse</div>
+<div class="tool" data-tool="@"><div class="tile player"></div> Spiller</div>
+<div class="tool" data-tool="."><div class="tile goal"></div> Mål</div>
+<div class="tool" data-tool=" "><div class="tile floor" style="border: 1px dashed #666;"></div> Viskelær</div>
+<div class="tool" id="undo-button" style="margin-top: auto; font-weight: bold; font-size: 20px;">&#x21BA; Angre</div>
+</div>
+<div class="editor-main-panel">
+<div id="visual-editor-container">
+<div id="visual-grid"></div>
+</div>
+</div>
+</div>
+<div id="game-modal" class="modal-overlay">
+<div class="modal-content">
+<div class="modal-header">
+<button id="reset-button">Omstart</button>
+<div id="game-status"></div>
+<button id="close-modal-button" class="close-button" title="Lukk">&times;</button>
+</div>
+<div id="game-container">
+<div id="game-board" tabindex="0"></div>
+</div>
+</div>
+</div>
+<script>
+const visualGrid = document.getElementById('visual-grid');
+const visualEditorContainer = document.getElementById('visual-editor-container');
+const gameBoard = document.getElementById('game-board');
+const resetButton = document.getElementById('reset-button');
+const gameStatus = document.getElementById('game-status');
+const errorStatus = document.getElementById('error-status');
+const fileInput = document.getElementById('file-input');
+const fileSelector = document.getElementById('file-selector');
+const levelSelector = document.getElementById('level-selector');
+const playButton = document.getElementById('play-button');
+const exportButton = document.getElementById('export-button');
+const undoButton = document.getElementById('undo-button');
+const gameModal = document.getElementById('game-modal');
+const closeModalButton = document.getElementById('close-modal-button');
+const gameContainer = document.getElementById('game-container');
+const tools = document.querySelectorAll('.tool[data-tool]');
+let loadedCollections = {};
+let undoStack = [];
+let originalLevelData = [];
+let levelData = [];
+let editorGrid = [];
+let playerPos = { x: 0, y: 0 };
+let gameWon = false;
+const TILE_MAP = {
+' ': 'floor',
+'#': 'wall',
+'@': 'player',
+'$': 'box',
+'.': 'goal',
+'*': 'box-on-goal',
+'+': 'player-on-goal'
+};
+function getCompletedLevels() {
+const data = localStorage.getItem('sokoban_progress');
+return data ? JSON.parse(data) : {};
+}
+function markLevelCompleted(fileName, levelIndex) {
+if (!fileName || isNaN(levelIndex)) return;
+const progress = getCompletedLevels();
+if (!progress[fileName]) progress[fileName] = [];
+if (!progress[fileName].includes(levelIndex)) {
+progress[fileName].push(levelIndex);
+localStorage.setItem('sokoban_progress', JSON.stringify(progress));
+updateLevelSelectorUI();
+}
+}
+function updateLevelSelectorUI() {
+const selectedFile = fileSelector.value;
+const progress = getCompletedLevels();
+const completedForFile = progress[selectedFile] || [];
+Array.from(levelSelector.options).forEach(option => {
+const idx = parseInt(option.value, 10);
+let text = `B ${idx + 1}`;
+if (completedForFile.includes(idx)) {
+text += ' \u2705';
+}
+option.textContent = text;
+});
+}
+async function loadDefaultFiles(filePaths) {
+try {
+const responses = await Promise.all(filePaths.map(path => fetch(path)));
+for (let i = 0; i < responses.length; i++) {
+if (!responses[i].ok) continue;
+const content = await responses[i].text();
+const fileName = filePaths[i].split('/').pop();
+const levels = content.split(/\n\s*\n/).filter(lvl => lvl.trim().length > 0);
+if (levels.length > 0) {
+loadedCollections[fileName] = levels;
+}
+}
+updateFileSelector();
+} catch (error) {
+console.error("Error loading default files:", error);
+}
+}
+function updateFileSelector() {
+const currentSelection = fileSelector.value;
+fileSelector.innerHTML = '';
+Object.keys(loadedCollections).forEach(fileName => {
+const option = document.createElement('option');
+option.value = fileName;
+option.textContent = fileName;
+fileSelector.appendChild(option);
+});
+if (Object.keys(loadedCollections).includes(currentSelection)) {
+fileSelector.value = currentSelection;
+}
+fileSelector.dispatchEvent(new Event('change'));
+}
+function handleFileLoad(event) {
+const files = event.target.files;
+if (!files.length) return;
+let filesToLoad = files.length;
+Array.from(files).forEach(file => {
+const reader = new FileReader();
+reader.onload = (e) => {
+const content = e.target.result;
+const levels = content.split(/\n\s*\n/).filter(lvl => lvl.trim().length > 0);
+if (levels.length > 0) {
+loadedCollections[file.name] = levels;
+}
+if (--filesToLoad === 0) {
+updateFileSelector();
+fileSelector.value = file.name;
+fileSelector.dispatchEvent(new Event('change'));
+}
+};
+reader.readAsText(file);
+});
+}
+function populateLevelSelector() {
+const selectedFile = fileSelector.value;
+levelSelector.innerHTML = '';
+if (!selectedFile || !loadedCollections[selectedFile]) {
+loadSelectedLevel();
+return;
+}
+const levels = loadedCollections[selectedFile];
+levels.forEach((_, index) => {
+const option = document.createElement('option');
+option.value = index;
+option.textContent = `B ${index + 1}`;
+levelSelector.appendChild(option);
+});
+updateLevelSelectorUI();
+levelSelector.dispatchEvent(new Event('change'));
+}
+function getGridString() {
+if (!editorGrid || editorGrid.length === 0) return '';
+const lines = editorGrid.map(row => row.join('').trimEnd());
+while (lines.length > 0 && lines[lines.length - 1] === '') {
+lines.pop();
+}
+return lines.join('\n');
+}
+function loadSelectedLevel() {
+const selectedFile = fileSelector.value;
+const levelIndex = levelSelector.value;
+let text = '';
+if (selectedFile && levelIndex !== null && loadedCollections[selectedFile]) {
+text = loadedCollections[selectedFile][levelIndex];
+}
+errorStatus.textContent = '';
+undoStack = [];
+loadTextToGrid(text);
+}
+let activeTool = '#';
+let isPointerDown = false;
+let isPainting = false;
+let isDraggingElement = false;
+let longPressTimer = null;
+let dragGhost = null;
+let dragSourceCell = null;
+let lastPaintedCell = null;
+let isSyncingText = false;
+tools.forEach(tool => {
+tool.addEventListener('click', () => {
+tools.forEach(t => t.classList.remove('selected'));
+tool.classList.add('selected');
+activeTool = tool.dataset.tool;
+});
+});
+function parseLevel(text) {
+const lines = text.split('\n');
+const newLevelData = lines.map(line => line.split(''));
+let maxLen = 0;
+newLevelData.forEach(row => { maxLen = Math.max(maxLen, row.length); });
+newLevelData.forEach(row => {
+while (row.length < maxLen) row.push(' ');
+});
+return newLevelData;
+}
+function saveState() {
+const stateStr = editorGrid.map(row => row.join('')).join('\n');
+if (undoStack.length === 0 || undoStack[undoStack.length - 1] !== stateStr) {
+undoStack.push(stateStr);
+}
+}
+function undo() {
+if (undoStack.length > 0) {
+const prevState = undoStack.pop();
+editorGrid = parseLevel(prevState);
+trimAndPadGrid();
+}
+}
+function loadTextToGrid(text) {
+if (text.trim() === '') {
+editorGrid = [];
+} else {
+editorGrid = parseLevel(text);
+}
+trimAndPadGrid();
+}
+function trimAndPadGrid() {
+let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
+for (let y = 0; y < editorGrid.length; y++) {
+for (let x = 0; x < editorGrid[y].length; x++) {
+if (editorGrid[y][x] !== ' ') {
+minX = Math.min(minX, x);
+minY = Math.min(minY, y);
+maxX = Math.max(maxX, x);
+maxY = Math.max(maxY, y);
+}
+}
+}
+let newGrid = [];
+if (minX === Infinity) {
+for (let i = 0; i < 8; i++) newGrid.push(new Array(8).fill(' '));
+} else {
+for (let y = minY - 1; y <= maxY + 1; y++) {
+let newRow = [];
+for (let x = minX - 1; x <= maxX + 1; x++) {
+if (y >= 0 && y < editorGrid.length && x >= 0 && x < editorGrid[y].length) {
+newRow.push(editorGrid[y][x]);
+} else {
+newRow.push(' ');
+}
+}
+newGrid.push(newRow);
+}
+}
+editorGrid = newGrid;
+renderVisualGrid();
+}
+function applyTileClasses(tileDiv, char) {
+tileDiv.className = 'tile';
+let type = TILE_MAP[char] || 'floor';
+if (type === 'player-on-goal' || type === 'box-on-goal' || type === 'goal') {
+tileDiv.classList.add('goal');
+}
+if (type === 'player-on-goal') type = 'player';
+if (type === 'box-on-goal') type = 'box-on-goal';
+if (type === 'player' || type === 'box' || type === 'box-on-goal' || type === 'wall') {
+tileDiv.classList.add(type);
+}
+}
+function renderVisualGrid() {
+if (editorGrid.length === 0) return;
+const rows = editorGrid.length;
+const cols = editorGrid[0].length;
+const containerWidth = visualEditorContainer.clientWidth - 40;
+const containerHeight = visualEditorContainer.clientHeight - 40;
+const maxTileSize = 60;
+const tileSizeW = containerWidth / cols;
+const tileSizeH = containerHeight / rows;
+const newTileSize = Math.floor(Math.min(tileSizeW, tileSizeH, maxTileSize));
+visualGrid.style.setProperty('--tile-size', `${newTileSize}px`);
+visualGrid.style.gridTemplateColumns = `repeat(${cols}, ${newTileSize}px)`;
+visualGrid.innerHTML = '';
+for (let y = 0; y < rows; y++) {
+for (let x = 0; x < cols; x++) {
+const tileDiv = document.createElement('div');
+tileDiv.dataset.x = x;
+tileDiv.dataset.y = y;
+applyTileClasses(tileDiv, editorGrid[y][x]);
+visualGrid.appendChild(tileDiv);
+}
+}
+}
+new ResizeObserver(renderVisualGrid).observe(visualEditorContainer);
+function applyTool(x, y, toolChar) {
+const currentChar = editorGrid[y][x];
+if (currentChar === toolChar) return;
+if (toolChar === ' ') editorGrid[y][x] = ' ';
+else if (toolChar === '@') {
+if (currentChar === ' ') editorGrid[y][x] = '@';
+else if (currentChar === '.') editorGrid[y][x] = '+';
+else editorGrid[y][x] = '@';
+} else if (toolChar === '$') {
+if (currentChar === ' ') editorGrid[y][x] = '$';
+else if (currentChar === '.') editorGrid[y][x] = '*';
+else editorGrid[y][x] = '$';
+} else if (toolChar === '.') {
+if (currentChar === ' ') editorGrid[y][x] = '.';
+else if (currentChar === '@') editorGrid[y][x] = '+';
+else if (currentChar === '$') editorGrid[y][x] = '*';
+else editorGrid[y][x] = '.';
+} else {
+editorGrid[y][x] = '#';
+}
+renderVisualGrid();
+}
+function startDraggingElement(x, y, char, clientX, clientY) {
+isDraggingElement = true;
+dragSourceCell = { x, y, char };
+let dragChar = char;
+let remainChar = ' ';
+if (char === '*') { dragChar = '$'; remainChar = '.'; }
+else if (char === '+') { dragChar = '@'; remainChar = '.'; }
+else if (char === '.') { dragChar = '.'; remainChar = ' '; }
+dragSourceCell.dragChar = dragChar;
+editorGrid[y][x] = remainChar;
+dragGhost = document.createElement('div');
+applyTileClasses(dragGhost, dragChar);
+dragGhost.classList.add('ghost');
+const tileSize = visualGrid.firstElementChild.offsetWidth;
+dragGhost.style.setProperty('--tile-size', `${tileSize}px`);
+dragGhost.style.width = tileSize + 'px';
+dragGhost.style.height = tileSize + 'px';
+dragGhost.style.left = clientX + 'px';
+dragGhost.style.top = clientY + 'px';
+document.body.appendChild(dragGhost);
+renderVisualGrid();
+}
+function dropElement(x, y) {
+const targetChar = editorGrid[y][x];
+const dragChar = dragSourceCell.dragChar;
+let resultChar = dragChar;
+if (dragChar === '@') {
+if (targetChar === ' ') resultChar = '@';
+else if (targetChar === '.') resultChar = '+';
+else { cancelDrop(); return; }
+} else if (dragChar === '$') {
+if (targetChar === ' ') resultChar = '$';
+else if (targetChar === '.') resultChar = '*';
+else { cancelDrop(); return; }
+} else if (dragChar === '.') {
+if (targetChar === ' ') resultChar = '.';
+else if (targetChar === '@') resultChar = '+';
+else if (targetChar === '$') resultChar = '*';
+else { cancelDrop(); return; }
+} else if (dragChar === '#') {
+if (targetChar === ' ' || targetChar === '.') resultChar = '#';
+else { cancelDrop(); return; }
+}
+editorGrid[y][x] = resultChar;
+}
+function cancelDrop() {
+editorGrid[dragSourceCell.y][dragSourceCell.x] = dragSourceCell.char;
+}
+function cleanupDrag() {
+if (dragGhost && dragGhost.parentNode) {
+dragGhost.parentNode.removeChild(dragGhost);
+}
+dragGhost = null;
+isDraggingElement = false;
+dragSourceCell = null;
+}
+visualGrid.addEventListener('pointerdown', (e) => {
+e.preventDefault();
+if (e.button !== 0 && e.pointerType === 'mouse') return;
+const target = e.target.closest('.tile');
+if (!target) return;
+const x = parseInt(target.dataset.x, 10);
+const y = parseInt(target.dataset.y, 10);
+saveState();
+isPointerDown = true;
+lastPaintedCell = null;
+longPressTimer = setTimeout(() => {
+const char = editorGrid[y][x];
+if (char !== ' ') {
+startDraggingElement(x, y, char, e.clientX, e.clientY);
+}
+}, 300);
+});
+window.addEventListener('pointermove', (e) => {
+if (!isPointerDown) return;
+if (!isDraggingElement && !isPainting) {
+clearTimeout(longPressTimer);
+isPainting = true;
+}
+if (isDraggingElement) {
+dragGhost.style.left = e.clientX + 'px';
+dragGhost.style.top = e.clientY + 'px';
+} else if (isPainting) {
+const el = document.elementFromPoint(e.clientX, e.clientY);
+const tile = el ? el.closest('.tile') : null;
+if (tile && visualGrid.contains(tile)) {
+const x = parseInt(tile.dataset.x, 10);
+const y = parseInt(tile.dataset.y, 10);
+if (!lastPaintedCell || lastPaintedCell.x !== x || lastPaintedCell.y !== y) {
+applyTool(x, y, activeTool);
+lastPaintedCell = {x, y};
+}
+}
+}
+});
+window.addEventListener('pointerup', (e) => {
+if (!isPointerDown) return;
+clearTimeout(longPressTimer);
+if (isDraggingElement) {
+const el = document.elementFromPoint(e.clientX, e.clientY);
+const tile = el ? el.closest('.tile') : null;
+if (tile && visualGrid.contains(tile)) {
+const x = parseInt(tile.dataset.x, 10);
+const y = parseInt(tile.dataset.y, 10);
+dropElement(x, y);
+} else {
+cancelDrop();
+}
+cleanupDrag();
+} else if (!isPainting) {
+const el = document.elementFromPoint(e.clientX, e.clientY);
+const tile = el ? el.closest('.tile') : null;
+if (tile && visualGrid.contains(tile)) {
+const x = parseInt(tile.dataset.x, 10);
+const y = parseInt(tile.dataset.y, 10);
+applyTool(x, y, activeTool);
+}
+}
+isPointerDown = false;
+isPainting = false;
+trimAndPadGrid();
+});
+window.addEventListener('pointercancel', (e) => {
+clearTimeout(longPressTimer);
+if (isDraggingElement) {
+cancelDrop();
+cleanupDrag();
+}
+isPointerDown = false;
+isPainting = false;
+renderVisualGrid();
+});
+function validateLevel(data) {
+let playerFound = false;
+let boxCount = 0;
+let goalCount = 0;
+const errors = [];
+data.forEach(row => {
+row.forEach(char => {
+if (char === '@' || char === '+') playerFound = true;
+if (char === '$' || char === '*') boxCount++;
+if (char === '.' || char === '*' || char === '+') goalCount++;
+});
+});
+if (!playerFound) errors.push("Spiller '@' mangler.");
+if (boxCount === 0) errors.push("Ingen kasser '$' funnet.");
+if (goalCount === 0) errors.push("Ingen mål '.' funnet.");
+if (boxCount > 0 && goalCount > 0 && boxCount !== goalCount) {
+errors.push(`Ubalanse: ${boxCount} kasser, ${goalCount} mål.`);
+}
+return errors;
+}
+function findStart(data) {
+for (let y = 0; y < data.length; y++) {
+for (let x = 0; x < data[y].length; x++) {
+if (data[y][x] === '@' || data[y][x] === '+') return { x, y };
+}
+}
+return null;
+}
+function resizeAndRenderGame() {
+if (!originalLevelData || originalLevelData.length === 0) return;
+gameWon = false;
+gameStatus.textContent = '';
+gameStatus.style.color = '#ffc107';
+levelData = JSON.parse(JSON.stringify(originalLevelData));
+playerPos = findStart(levelData);
+const rows = levelData.length;
+const cols = levelData[0].length;
+const containerWidth = gameContainer.clientWidth - 20;
+const containerHeight = gameContainer.clientHeight - 20;
+const tileSizeW = containerWidth / cols;
+const tileSizeH = containerHeight / rows;
+const newTileSize = Math.floor(Math.min(tileSizeW, tileSizeH, 80));
+gameBoard.style.setProperty('--tile-size', `${newTileSize}px`);
+gameBoard.innerHTML = '';
+gameBoard.style.gridTemplateColumns = `repeat(${cols}, ${newTileSize}px)`;
+for (let y = 0; y < rows; y++) {
+for (let x = 0; x < cols; x++) {
+const tileDiv = document.createElement('div');
+applyTileClasses(tileDiv, levelData[y][x]);
+gameBoard.appendChild(tileDiv);
+}
+}
+checkWin();
+gameBoard.focus();
+}
+function playGame() {
+isPointerDown = false;
+clearTimeout(longPressTimer);
+cleanupDrag();
+const text = getGridString();
+if (text.trim() === '') {
+errorStatus.textContent = 'Feil: Redigereren er tom.';
+return;
+}
+const parsedForValidation = parseLevel(text);
+const validationErrors = validateLevel(parsedForValidation);
+if (validationErrors.length > 0) {
+errorStatus.textContent = 'Feil: ' + validationErrors.join(' ');
+return;
+}
+errorStatus.textContent = '';
+originalLevelData = parsedForValidation;
+gameModal.style.display = 'flex';
+resizeAndRenderGame();
+}
+function closeGame() {
+gameModal.style.display = 'none';
+gameBoard.innerHTML = '';
+originalLevelData = [];
+levelData = [];
+}
+function updateTile(x, y) {
+if (!levelData.length) return;
+const index = y * levelData[0].length + x;
+if (index < 0 || index >= gameBoard.children.length) return;
+const tileDiv = gameBoard.children[index];
+applyTileClasses(tileDiv, levelData[y][x]);
+}
+function isOriginalGoal(x, y) {
+const originalChar = originalLevelData[y][x];
+return originalChar === '.' || originalChar === '+' || originalChar === '*';
+}
+function move(dx, dy) {
+if (gameWon || !levelData.length) return;
+const { x, y } = playerPos;
+const nx = x + dx, ny = y + dy;
+if (ny < 0 || ny >= levelData.length || nx < 0 || nx >= levelData[ny].length) return;
+const targetTile = levelData[ny][nx];
+const originalPlayerTile = levelData[y][x];
+if (targetTile === ' ' || targetTile === '.') {
+levelData[y][x] = (originalPlayerTile === '+') ? '.' : ' ';
+levelData[ny][nx] = (targetTile === '.') ? '+' : '@';
+playerPos = { x: nx, y: ny };
+updateTile(x, y);
+updateTile(nx, ny);
+} else if (targetTile === '$' || targetTile === '*') {
+const nnx = nx + dx, nny = ny + dy;
+if (nny < 0 || nny >= levelData.length || nnx < 0 || nnx >= levelData[nny].length) return;
+const behindBoxTile = levelData[nny][nnx];
+if (behindBoxTile === ' ' || behindBoxTile === '.') {
+levelData[nny][nnx] = (behindBoxTile === '.') ? '*' : '$';
+levelData[ny][nx] = (targetTile === '*') ? '+' : '@';
+levelData[y][x] = (originalPlayerTile === '+') ? '.' : ' ';
+playerPos = { x: nx, y: ny };
+updateTile(x, y);
+updateTile(nx, ny);
+updateTile(nnx, nny);
+}
+}
+checkWin();
+}
+function checkWin() {
+let totalGoals = 0;
+let boxesOnGoals = 0;
+for (let y = 0; y < originalLevelData.length; y++) {
+for (let x = 0; x < originalLevelData[y].length; x++) {
+if (isOriginalGoal(x, y)) {
+totalGoals++;
+if (levelData[y][x] === '*') {
+boxesOnGoals++;
+}
+}
+}
+}
+if (totalGoals > 0 && totalGoals === boxesOnGoals) {
+gameStatus.textContent = 'Brett fullført!';
+gameStatus.style.color = '#5cb85c';
+gameWon = true;
+markLevelCompleted(fileSelector.value, parseInt(levelSelector.value, 10));
+}
+}
+window.addEventListener('keydown', (e) => {
+if (e.key === 'Escape' && gameModal.style.display === 'flex') {
+closeGame();
+}
+});
+gameBoard.addEventListener('keydown', (e) => {
+e.preventDefault();
+switch (e.key) {
+case 'ArrowUp': move(0, -1); break;
+case 'ArrowDown': move(0, 1); break;
+case 'ArrowLeft': move(-1, 0); break;
+case 'ArrowRight': move(1, 0); break;
+}
+});
+let touchStartX = 0;
+let touchStartY = 0;
+gameBoard.addEventListener('touchstart', (e) => {
+touchStartX = e.changedTouches[0].screenX;
+touchStartY = e.changedTouches[0].screenY;
+}, { passive: false });
+gameBoard.addEventListener('touchmove', (e) => {
+e.preventDefault();
+}, { passive: false });
+gameBoard.addEventListener('touchend', (e) => {
+const touchEndX = e.changedTouches[0].screenX;
+const touchEndY = e.changedTouches[0].screenY;
+const dx = touchEndX - touchStartX;
+const dy = touchEndY - touchStartY;
+const absDx = Math.abs(dx);
+const absDy = Math.abs(dy);
+if (Math.max(absDx, absDy) > 30) {
+if (absDx > absDy) {
+if (dx > 0) move(1, 0);
+else move(-1, 0);
+} else {
+if (dy > 0) move(0, 1);
+else move(0, -1);
+}
+}
+});
+new ResizeObserver(resizeAndRenderGame).observe(gameContainer);
+function exportLevel() {
+const text = getGridString();
+if (!text.trim()) {
+errorStatus.textContent = 'Feil: Ingenting å eksportere.';
+return;
+}
+const blob = new Blob([text], { type: 'text/plain' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'my_sokoban_level.txt';
+a.click();
+URL.revokeObjectURL(url);
+}
+document.addEventListener('DOMContentLoaded', () => {
+loadDefaultFiles([
+'sokoban01.txt', 'sokoban02.txt', 'sokoban03.txt',
+'sokoban04.txt', 'sokoban05.txt', 'sokoban06.txt',
+'sokoban07.txt', 'sokoban08.txt', 'sokoban09.txt',
+'sokoban10.txt', 'sokoban11.txt', 'sokoban12.txt'
+]);
+loadTextToGrid('');
+});
+fileInput.addEventListener('change', handleFileLoad);
+fileSelector.addEventListener('change', populateLevelSelector);
+levelSelector.addEventListener('change', loadSelectedLevel);
+playButton.addEventListener('click', playGame);
+exportButton.addEventListener('click', exportLevel);
+undoButton.addEventListener('click', undo);
+resetButton.addEventListener('click', resizeAndRenderGame);
+closeModalButton.addEventListener('click', closeGame);
+</script>
+</body>
+</html>

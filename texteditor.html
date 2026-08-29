@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Editor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%22 y=%2275%22 font-size=%2280%22 text-anchor=%22middle%22>%F0%9F%93%97</text></svg>">
+<style>
+:root {
+--bg-color: #0f111a;
+--text-color: #a6accd;
+--accent-color: #80cbd4;
+--accent-hover: #abf4f7;
+--ui-bg: rgba(26, 29, 45, 0.85);
+--border-color: #2b3045;
+--font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body {
+background-color: var(--bg-color);
+color: var(--text-color);
+font-family: var(--font-mono);
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 80px 20px 40px;
+}
+header {
+position: fixed;
+top: 16px;
+display: flex;
+align-items: center;
+gap: 10px;
+padding: 8px 16px;
+background: var(--ui-bg);
+border: 1px solid var(--border-color);
+border-radius: 8px;
+backdrop-filter: blur(8px);
+box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+z-index: 100;
+}
+button {
+background: transparent;
+color: var(--text-color);
+border: 1px solid var(--border-color);
+padding: 6px 12px;
+border-radius: 4px;
+font-family: var(--font-mono);
+font-size: 12px;
+cursor: pointer;
+transition: all 0.2s ease;
+}
+button:hover {
+color: var(--accent-hover);
+border-color: var(--accent-color);
+background: rgba(128, 203, 212, 0.05);
+}
+.divider {
+width: 1px;
+height: 16px;
+background: var(--border-color);
+}
+.stats {
+font-size: 11px;
+color: #565f89;
+user-select: none;
+}
+#toast {
+position: fixed;
+bottom: 24px;
+background: var(--ui-bg);
+color: var(--accent-color);
+border: 1px solid var(--accent-color);
+padding: 8px 16px;
+border-radius: 6px;
+font-size: 12px;
+box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+opacity: 0;
+transform: translateY(10px);
+transition: opacity 0.3s ease, transform 0.3s ease;
+pointer-events: none;
+z-index: 101;
+}
+#toast.show {
+opacity: 1;
+transform: translateY(0);
+}
+main {
+width: 100%;
+max-width: 768px;
+flex-grow: 1;
+display: flex;
+}
+textarea {
+width: 100%;
+height: calc(100vh - 140px);
+background: transparent;
+border: none;
+outline: none;
+resize: none;
+color: var(--text-color);
+font-family: var(--font-mono);
+font-size: 15px;
+line-height: 1.6;
+caret-color: var(--accent-color);
+tab-size: 2;
+scrollbar-width: none;
+-ms-overflow-style: none;
+}
+textarea::-webkit-scrollbar {
+display: none;
+}
+textarea::placeholder {
+color: #3b4261;
+}
+</style>
+</head>
+<body>
+<header>
+<button id="openBtn">Open</button>
+<button id="saveBtn">Save</button>
+<button id="saveAsBtn">Save As</button>
+<button id="newBtn">Clear</button>
+<div class="divider"></div>
+<div class="stats" id="stats">0 words | 0 chars</div>
+</header>
+<main>
+<textarea id="editor" placeholder="// Type your notes or code here..." autofocus></textarea>
+</main>
+<div id="toast">Successfully saved!</div>
+<input type="file" id="fileInput" accept=".txt,.js,.py,.html,.css,.json,.md" style="display: none;">
+<script>
+const editor = document.getElementById('editor');
+const saveBtn = document.getElementById('saveBtn');
+const saveAsBtn = document.getElementById('saveAsBtn');
+const openBtn = document.getElementById('openBtn');
+const newBtn = document.getElementById('newBtn');
+const fileInput = document.getElementById('fileInput');
+const stats = document.getElementById('stats');
+const toast = document.getElementById('toast');
+let fileHandle = null;
+let isDirty = false;
+const savedContent = localStorage.getItem('night_editor_content');
+if (savedContent) {
+editor.value = savedContent;
+updateStats();
+}
+function showToast(message) {
+toast.textContent = message;
+toast.classList.add('show');
+setTimeout(() => {
+toast.classList.remove('show');
+}, 2000);
+}
+editor.addEventListener('input', () => {
+isDirty = true;
+localStorage.setItem('night_editor_content', editor.value);
+updateStats();
+});
+window.addEventListener('beforeunload', (e) => {
+if (isDirty) {
+e.preventDefault();
+e.returnValue = '';
+}
+});
+editor.addEventListener('keydown', (e) => {
+if (e.key === 'Tab') {
+e.preventDefault();
+const start = editor.selectionStart;
+const end = editor.selectionEnd;
+editor.value = editor.value.substring(0, start) + "  " + editor.value.substring(end);
+editor.selectionStart = editor.selectionEnd = start + 2;
+isDirty = true;
+updateStats();
+}
+});
+function updateStats() {
+const text = editor.value;
+const chars = text.length;
+const words = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+stats.textContent = `${words} words | ${chars} chars${isDirty ? ' *' : ''}`;
+}
+async function saveFile(forceNew = false) {
+try {
+if ('showSaveFilePicker' in window) {
+if (!fileHandle || forceNew) {
+fileHandle = await window.showSaveFilePicker({
+types: [{
+description: 'Text Files',
+accept: { 'text/plain': ['.txt', '.js', '.py', '.md', '.html', '.css', '.json'] },
+}],
+});
+}
+const writable = await fileHandle.createWritable();
+await writable.write(editor.value);
+await writable.close();
+} else {
+const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = `notes_${new Date().toISOString().slice(0,10)}.txt`;
+a.click();
+URL.revokeObjectURL(url);
+}
+isDirty = false;
+updateStats();
+showToast('Successfully saved!');
+} catch (err) {
+if (err.name !== 'AbortError') {
+console.error('Save failed:', err);
+}
+}
+}
+async function openFile() {
+if (isDirty && !confirm('You have unsaved changes. Open a new file anyway?')) {
+return;
+}
+try {
+if ('showOpenFilePicker' in window) {
+const [handle] = await window.showOpenFilePicker({
+types: [{
+description: 'Text Files',
+accept: { 'text/plain': ['.txt', '.js', '.py', '.md', '.html', '.css', '.json'] },
+}],
+});
+fileHandle = handle;
+const file = await fileHandle.getFile();
+editor.value = await file.text();
+} else {
+fileInput.click();
+return;
+}
+isDirty = false;
+localStorage.setItem('night_editor_content', editor.value);
+updateStats();
+showToast('File opened!');
+} catch (err) {
+if (err.name !== 'AbortError') {
+console.error('Open failed:', err);
+}
+}
+}
+fileInput.addEventListener('change', (e) => {
+const file = e.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = (e) => {
+editor.value = e.target.result;
+isDirty = false;
+fileHandle = null;
+localStorage.setItem('night_editor_content', editor.value);
+updateStats();
+showToast('File opened!');
+};
+reader.readAsText(file);
+fileInput.value = '';
+});
+saveBtn.addEventListener('click', () => saveFile(false));
+saveAsBtn.addEventListener('click', () => saveFile(true));
+openBtn.addEventListener('click', openFile);
+newBtn.addEventListener('click', () => {
+if (!isDirty || confirm('Clear current buffer? Unsaved changes will be lost.')) {
+editor.value = '';
+fileHandle = null;
+isDirty = false;
+localStorage.removeItem('night_editor_content');
+updateStats();
+showToast('Buffer cleared');
+}
+});
+</script>
+</body>
+</html>
