@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sjakk Brettspill v2 (no)</title>
+
+<style>
+
+:root {
+--bg-color: #f3f4f6;
+--panel-bg: #ffffff;
+--border-color: #e5e7eb;
+--hover-color: #f9fafb;
+--text-color: #1f2937;
+--accent-color: #e05a47;
+--light-square: #f0d9b5;
+--dark-square: #b58863;
+--shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+--radius: 12px;
+}
+body {
+background-color: var(--bg-color);
+color: var(--text-color);
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+display: flex;
+flex-direction: column;
+align-items: center;
+margin: 0;
+height: 100dvh;
+width: 100vw;
+overflow: hidden;
+font-weight: 500;
+-webkit-user-select: none;
+user-select: none;
+touch-action: manipulation;
+box-sizing: border-box;
+}
+button {
+background-color: var(--panel-bg);
+color: var(--text-color);
+border: 1px solid var(--border-color);
+padding: 8px 16px;
+font-size: 13px;
+font-weight: 600;
+cursor: pointer;
+border-radius: 8px;
+transition: all 0.2s ease;
+box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+button:hover {
+border-color: var(--accent-color);
+color: var(--accent-color);
+background-color: var(--hover-color);
+box-shadow: 0 4px 6px -1px rgba(224, 90, 71, 0.15);
+}
+.game-screen {
+width: 100%;
+max-width: 650px; /* Økt fra 500px for å gi en mye bedre opplevelse på iPad */
+display: flex;
+flex-direction: column;
+height: 100dvh;
+box-sizing: border-box;
+position: relative;
+}
+.top-bar {
+width: 100%;
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 12px 16px;
+background-color: var(--panel-bg);
+border-bottom: 1px solid var(--border-color);
+box-sizing: border-box;
+box-shadow: var(--shadow);
+gap: 12px;
+flex-shrink: 0;
+}
+.info-group {
+display: flex;
+flex-direction: column;
+text-align: left;
+}
+.level-display {
+font-size: 15px;
+font-weight: 800;
+color: var(--accent-color);
+letter-spacing: 0.5px;
+}
+.game-title {
+font-size: 10px;
+font-weight: bold;
+text-transform: uppercase;
+letter-spacing: 1.5px;
+opacity: 0.5;
+margin-top: 1px;
+}
+.center-console {
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+.status-text {
+font-size: 14px;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 1px;
+color: var(--text-color);
+}
+.game-area {
+display: flex;
+justify-content: center;
+align-items: center;
+width: 100%;
+flex-grow: 1;
+flex-shrink: 1;
+padding: 16px;
+box-sizing: border-box;
+overflow: hidden;
+min-height: 0; /* Hindrer flex-elementer i å presses ut av visningsområdet */
+}
+.board-container {
+border: 4px solid var(--panel-bg);
+box-shadow: var(--shadow);
+border-radius: var(--radius);
+aspect-ratio: 1 / 1;
+width: 100%;
+/* Sikrer at høyden aldri blir større enn tilgjengelig skjerm minus topp-bar */
+max-width: min(100%, calc(100dvh - 140px)); 
+max-height: 100%;
+box-sizing: border-box;
+position: relative;
+overflow: hidden;
+background-color: var(--border-color);
+container-type: inline-size; /* Muliggjør responsive Container Queries for brikkene */
+}
+#chess-board {
+display: grid;
+grid-template-columns: repeat(8, minmax(0, 1fr));
+grid-template-rows: repeat(8, minmax(0, 1fr));
+width: 100%;
+height: 100%;
+}
+.chess-square {
+display: flex;
+justify-content: center;
+align-items: center;
+position: relative;
+cursor: pointer;
+font-size: 8vw; /* Fallback */
+font-size: 9.5cqw; /* Perfekt skalert i forhold til brettets sanne bredde */
+user-select: none;
+}
+.chess-light {
+background-color: var(--light-square);
+}
+.chess-dark {
+background-color: var(--dark-square);
+}
+.chess-piece {
+z-index: 2;
+transition: transform 0.1s ease;
+line-height: 1;
+}
+.chess-piece.white {
+color: #ffffff;
+filter: drop-shadow(0px 2px 3px rgba(0, 0, 0, 0.4)) drop-shadow(0px 0px 1px rgba(0, 0, 0, 0.9));
+}
+.chess-piece.black {
+color: #2b2b2b;
+filter: drop-shadow(0px 1px 2px rgba(255, 255, 255, 0.4)) drop-shadow(0px 0px 1px rgba(0, 0, 0, 0.9));
+}
+.chess-selected {
+background-color: rgba(224, 90, 71, 0.35) !important;
+}
+.chess-highlight::after {
+content: '';
+position: absolute;
+width: 20%;
+height: 20%;
+background: var(--accent-color);
+border-radius: 50%;
+opacity: 0.8;
+z-index: 1;
+}
+.chess-capture::after {
+content: '';
+position: absolute;
+width: 80%;
+height: 80%;
+border: 4px solid var(--accent-color);
+border-radius: 50%;
+opacity: 0.7;
+z-index: 1;
+box-sizing: border-box;
+}
+.game-over-screen {
+display: none;
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(255, 255, 255, 0.92);
+backdrop-filter: blur(4px);
+z-index: 200;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+gap: 20px;
+text-align: center;
+padding: 20px;
+box-sizing: border-box;
+}
+.game-over-text {
+font-size: min(28px, 6vw);
+font-weight: 800;
+color: var(--text-color);
+margin: 0;
+letter-spacing: 0.5px;
+}
+.game-over-btn {
+font-size: 16px;
+padding: 12px 28px;
+background-color: var(--accent-color);
+color: white;
+border: none;
+border-radius: 10px;
+font-weight: bold;
+box-shadow: 0 4px 6px rgba(224, 90, 71, 0.2);
+}
+.game-over-btn:hover {
+background-color: #cb4a38;
+color: white;
+transform: translateY(-1px);
+}
+#portrait-warning {
+display: none;
+position: fixed;
+top: 0; left: 0; width: 100vw; height: 100vh;
+background-color: var(--bg-color);
+z-index: 9999;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+text-align: center;
+padding: 20px;
+box-sizing: border-box;
+}
+#portrait-warning h2 {
+color: var(--accent-color);
+margin-bottom: 15px;
+font-size: 26px;
+}
+@media (orientation: landscape) and (pointer: coarse) {
+#portrait-warning {
+display: flex;
+}
+}
+</style>
+</head>
+
+<body>
+
+<div id="portrait-warning">
+<h2>Vennligst snu enheten</h2>
+<p>Dette spillet fungerer best i stående (portrett) modus.</p>
+</div>
+<div id="chess-screen" class="game-screen">
+<div class="top-bar">
+<div class="info-group">
+<span id="chess-level" class="level-display">NIVÅ 1</span>
+<span class="game-title">Sjakk</span>
+</div>
+<div class="center-console">
+<div id="chess-status" class="status-text">KLAR</div>
+</div>
+<button onclick="ChessGame.resetDifficulty()">Nullstill</button>
+</div>
+<div class="game-area">
+<div class="board-container">
+<div id="chess-board"></div>
+<div id="chess-game-over" class="game-over-screen">
+<h1 id="chess-game-over-text" class="game-over-text">DU VANT!</h1>
+<button id="chess-action-btn" class="game-over-btn"></button>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+
+const ChessGame = (function() {
+const PIECES = {
+'P':'♙', 'N':'♘', 'B':'♗', 'R':'♖', 'Q':'♕', 'K':'♔',
+'p':'♙', 'n':'♘', 'b':'♗', 'r':'♖', 'q':'♕', 'k':'♔'
+};
+const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const MG_WEIGHTS = { p: 82, n: 337, b: 365, r: 477, q: 1025, k: 20000 };
+const EG_WEIGHTS = { p: 94, n: 281, b: 297, r: 512, q: 936, k: 20000 };
+const PST_MG = {
+p: [ 0,0,0,0,0,0,0,0, 98,134,61,95,68,126,34,-11, -6,7,26,31,65,56,25,-20, -14,13,6,21,23,12,17,-23, -27,-2,-5,12,17,6,10,-25, -26,-4,-4,-10,3,3,33,-12, -35,-1,-20,-23,-15,24,38,-22, 0,0,0,0,0,0,0,0 ],
+n: [ -167,-89,-34,-49,61,-97,-15,-107, -73,-41,72,36,23,62,7,-17, -47,60,37,65,84,129,73,44, -9,17,19,53,37,69,18,22, -13,4,16,13,28,19,21,-8, -23,-9,12,10,19,17,25,-16, -29,-53,-12,-3,-1,18,-14,-19, -105,-21,-58,-33,-17,-28,-19,-23 ],
+b: [ -29,4,-82,-37,-25,-42,7,-8, -26,16,-18,-13,30,59,18,-47, -16,37,43,40,35,50,37,-2, -4,5,19,50,37,37,7,-2, -6,13,13,26,34,12,10,4, 0,15,15,15,14,27,18,10, 4,15,16,0,7,21,33,1, -33,-3,-14,-21,-13,-12,-39,-21 ],
+r: [ 32,42,32,51,63,9,31,43, 27,32,58,62,80,67,26,44, -5,19,26,36,17,45,61,16, -24,-11,7,26,24,35,-8,-20, -36,-26,-12,-1,9,-7,6,-23, -45,-25,-16,-17,3,0,-5,-33, -44,-16,-20,-9,-1,11,-6,-71, -19,-13,1,17,16,7,-37,-26 ],
+q: [ -28,0,29,12,59,44,43,45, -24,-39,-5,1,-16,57,28,54, -13,-17,7,8,29,56,47,57, -27,-27,-16,-16,-1,17,-2,1, -9,-26,-9,-10,-2,-4,3,-3, -14,2,-11,-2,-5,2,14,5, -35,-8,11,2,8,15,-3,1, -1,-18,-9,10,-15,-25,-31,-50 ],
+k: [ -65,23,16,-15,-56,-34,2,13, 29,-1,-20,-7,-8,-4,-38,-29, -9,24,2,-16,-20,6,22,-22, -17,-20,-12,-27,-30,-25,-14,-36, -49,-1,-27,-39,-46,-44,-33,-51, -14,-14,-22,-46,-44,-30,-15,-27, 1,7,-8,-64,-43,-16,9,8, -15,36,12,-54,8,-28,24,14 ]
+};
+const PST_EG = {
+p: [ 0,0,0,0,0,0,0,0, 178,173,158,134,147,132,165,187, 94,100,85,67,56,53,82,84, 32,24,13,5,-2,4,17,17, 13,9,-3,-7,-7,-8,3,-1, 4,7,-6,1,0,-5,-1,-8, 13,8,8,10,13,0,2,-7, 0,0,0,0,0,0,0,0 ],
+n: [ -58,-38,-13,-28,-31,-27,-63,-99, -25,-8,-25,-2,-9,-25,-24,-52, -24,-20,10,9,-1,-9,-19,-41, -17,3,22,22,22,11,8,-18, -18,-6,16,25,16,17,4,-18, -23,-3,-1,15,10,-3,-20,-22, -42,-20,-10,-5,-2,-20,-23,-44, -29,-51,-23,-38,-22,-28,-43,-36 ],
+b: [ -14,-21,-11,-8,-7,-9,-17,-24, -8,-4,7,-12,-3,-13,-4,-14, 2,-8,0,-1,-2,6,0,4, -3,9,12,9,14,10,3,2, -6,3,13,19,7,10,-3,-9, -12,-3,8,10,13,3,-7,-15, -14,-18,-7,-1,4,-9,-15,-27, -23,-9,-23,-5,-9,-16,-5,-17 ],
+r: [ 13,10,18,15,12,12,8,5, 11,13,13,11,-3,3,8,3, 7,7,7,5,4,-3,-5,-3, 4,3,13,1,2,1,-1,2, 3,5,8,4,-5,-6,-8,-11, -4,0,-5,-1,-7,-12,-8,-16, -6,-6,0,2,-9,-9,-11,-3, -9,2,3,-1,-5,-13,4,-20 ],
+q: [ -9,22,22,27,27,19,10,20, -17,20,32,41,58,25,30,0, -20,6,9,49,47,35,19,9, 3,22,24,45,57,40,57,36, -18,28,19,47,31,34,12,11, 16,20,22,54,25,11,10,2, -22,-33,-29,-26,-15,-24,-18,-24, -33,-28,-22,-43,-5,-32,-20,-41 ],
+k: [ -74,-35,-18,-18,-11,15,4,-17, -12,17,14,17,17,38,23,11, 10,17,23,15,20,45,44,13, -8,22,24,27,26,33,26,3, -18,-4,21,24,27,23,9,-11, -19,-3,11,21,23,16,7,-9, -27,-11,4,13,14,4,-5,-17, -53,-34,-21,-11,-28,-14,-24,-43 ]
+};
+const PST_MG_B = {}; const PST_EG_B = {};
+for (let p in PST_MG) {
+PST_MG_B[p] = new Array(64); PST_EG_B[p] = new Array(64);
+for (let i = 0; i < 64; i++) {
+PST_MG_B[p][i] = PST_MG[p][i ^ 56];
+PST_EG_B[p][i] = PST_EG[p][i ^ 56];
+}
+}
+const DIRS = {
+N: [ [-1,-2], [-2,-1], [-2,1], [-1,2], [1,2], [2,1], [2,-1], [1,-2] ],
+B: [ [-1,-1], [-1,1], [1,-1], [1,1] ],
+R: [ [-1,0], [1,0], [0,-1], [0,1] ],
+Q: [ [-1,-1], [-1,1], [1,-1], [1,1], [-1,0], [1,0], [0,-1], [0,1] ],
+K: [ [-1,-1], [-1,1], [1,-1], [1,1], [-1,0], [1,0], [0,-1], [0,1] ]
+};
+
+const idx = (x, y) => y * 8 + x;
+
+const isValid = (x, y) => x >= 0 && x < 8 && y >= 0 && y < 8;
+
+const getColor = (p) => p ? (p === p.toUpperCase() ? 'w' : 'b') : null;
+
+class GameState {
+constructor() {
+this.board = new Array(64).fill('');
+this.turn = 'w';
+this.castling = { wK: false, wQ: false, bK: false, bQ: false };
+this.ep = -1;
+this.halfMoves = 0;
+this.history = [];
+}
+clone() {
+let n = new GameState();
+n.board = [...this.board]; n.turn = this.turn; n.castling = { ...this.castling };
+n.ep = this.ep; n.halfMoves = this.halfMoves; n.history = [...this.history];
+return n;
+}
+loadFEN(fen) {
+let parts = fen.split(' '), rows = parts[0].split('/'), i = 0;
+for (let r = 0; r < 8; r++) {
+for (let c = 0; c < rows[r].length; c++) {
+let char = rows[r][c];
+if (isNaN(char)) this.board[i++] = char; else i += parseInt(char);
+}
+}
+this.turn = parts[1];
+if (parts[2] !== '-') {
+this.castling.wK = parts[2].includes('K'); this.castling.wQ = parts[2].includes('Q');
+this.castling.bK = parts[2].includes('k'); this.castling.bQ = parts[2].includes('q');
+}
+}
+getSimplifiedState() { return this.board.join('') + this.turn + Object.values(this.castling).join('') + this.ep; }
+}
+let gameState, selectedSquare = -1, currentLegalMoves = [], gameOver = false;
+let isThinking = false, isAnimating = false;
+let currentLevel = parseInt(localStorage.getItem('chessLevel')) || 1;
+let isInitialized = false;
+let aiNodes = 0, aiTimeLimit = 1000, aiStartTime = 0;
+
+function updateStatus(txt) { document.getElementById('chess-status').textContent = txt; }
+
+function init() {
+document.getElementById('chess-level').textContent = `NIVÅ ${currentLevel}`;
+document.getElementById('chess-game-over').style.display = 'none';
+gameState = new GameState();
+gameState.loadFEN(START_FEN);
+gameState.history.push(gameState.getSimplifiedState());
+selectedSquare = -1; currentLegalMoves = []; gameOver = false;
+isThinking = false; isAnimating = false;
+render(); updateStatus("DIN TUR");
+isInitialized = true;
+}
+
+function isAttacked(state, sq, attackerColor) {
+const x = sq % 8, y = Math.floor(sq / 8);
+for (let d of DIRS.N) {
+let nx = x + d[0], ny = y + d[1];
+if (isValid(nx, ny)) { let p = state.board[idx(nx, ny)]; if (p && getColor(p) === attackerColor && p.toUpperCase() === 'N') return true; }
+}
+const rayDirs = [...DIRS.R, ...DIRS.B];
+for (let i = 0; i < 8; i++) {
+let dx = rayDirs[i][0], dy = rayDirs[i][1], nx = x + dx, ny = y + dy;
+while (isValid(nx, ny)) {
+let p = state.board[idx(nx, ny)];
+if (p) {
+if (getColor(p) === attackerColor) {
+let type = p.toUpperCase();
+if (type === 'Q') return true;
+if (i < 4 && type === 'R') return true;
+if (i >= 4 && type === 'B') return true;
+}
+break;
+}
+nx += dx; ny += dy;
+}
+}
+let pawnDir = attackerColor === 'w' ? -1 : 1;
+for (let dx of [-1, 1]) {
+let nx = x + dx, ny = y - pawnDir;
+if (isValid(nx, ny)) { let p = state.board[idx(nx, ny)]; if (p && getColor(p) === attackerColor && p.toUpperCase() === 'P') return true; }
+}
+for (let d of DIRS.K) {
+let nx = x + d[0], ny = y + d[1];
+if (isValid(nx, ny)) { let p = state.board[idx(nx, ny)]; if (p && getColor(p) === attackerColor && p.toUpperCase() === 'K') return true; }
+}
+return false;
+}
+
+function getPseudoMoves(state, color) {
+let moves = [], enemy = color === 'w' ? 'b' : 'w';
+for (let i = 0; i < 64; i++) {
+let p = state.board[i];
+if (!p || getColor(p) !== color) continue;
+let type = p.toUpperCase(), x = i % 8, y = Math.floor(i / 8);
+if (type === 'P') {
+let dir = color === 'w' ? -1 : 1, startRow = color === 'w' ? 6 : 1, promRow = color === 'w' ? 0 : 7;
+let promPieces = color === 'w' ? ['Q', 'R', 'B', 'N'] : ['q', 'r', 'b', 'n'];
+if (isValid(x, y + dir) && !state.board[idx(x, y + dir)]) {
+let to = idx(x, y + dir);
+if (y + dir === promRow) promPieces.forEach(promo => moves.push({ from: i, to: to, prom: promo }));
+else moves.push({ from: i, to: to });
+if (y === startRow && !state.board[idx(x, y + dir * 2)]) moves.push({ from: i, to: idx(x, y + dir * 2), double: true });
+}
+for (let dx of [-1, 1]) {
+if (isValid(x + dx, y + dir)) {
+let to = idx(x + dx, y + dir), target = state.board[to];
+if (target && getColor(target) === enemy) {
+if (y + dir === promRow) promPieces.forEach(promo => moves.push({ from: i, to: to, prom: promo, cap: true }));
+else moves.push({ from: i, to: to, cap: true });
+} else if (state.ep === to) moves.push({ from: i, to: to, ep: true, cap: true });
+}
+}
+} else if (type === 'N' || type === 'K') {
+for (let d of DIRS[type]) {
+let nx = x + d[0], ny = y + d[1];
+if (isValid(nx, ny)) {
+let to = idx(nx, ny), target = state.board[to];
+if (!target) moves.push({ from: i, to: to });
+else if (getColor(target) === enemy) moves.push({ from: i, to: to, cap: true });
+}
+}
+} else {
+for (let d of DIRS[type]) {
+let nx = x + d[0], ny = y + d[1];
+while (isValid(nx, ny)) {
+let to = idx(nx, ny), target = state.board[to];
+if (!target) moves.push({ from: i, to: to });
+else { if (getColor(target) === enemy) moves.push({ from: i, to: to, cap: true }); break; }
+nx += d[0]; ny += d[1];
+}
+}
+}
+}
+if (color === 'w') {
+if (state.castling.wK && !state.board[idx(5,7)] && !state.board[idx(6,7)]) {
+if (!isAttacked(state, idx(4,7), 'b') && !isAttacked(state, idx(5,7), 'b') && !isAttacked(state, idx(6,7), 'b')) moves.push({ from: idx(4,7), to: idx(6,7), castle: 'K' });
+}
+if (state.castling.wQ && !state.board[idx(3,7)] && !state.board[idx(2,7)] && !state.board[idx(1,7)]) {
+if (!isAttacked(state, idx(4,7), 'b') && !isAttacked(state, idx(3,7), 'b') && !isAttacked(state, idx(2,7), 'b')) moves.push({ from: idx(4,7), to: idx(2,7), castle: 'Q' });
+}
+} else {
+if (state.castling.bK && !state.board[idx(5,0)] && !state.board[idx(6,0)]) {
+if (!isAttacked(state, idx(4,0), 'w') && !isAttacked(state, idx(5,0), 'w') && !isAttacked(state, idx(6,0), 'w')) moves.push({ from: idx(4,0), to: idx(6,0), castle: 'k' });
+}
+if (state.castling.bQ && !state.board[idx(3,0)] && !state.board[idx(2,0)] && !state.board[idx(1,0)]) {
+if (!isAttacked(state, idx(4,0), 'w') && !isAttacked(state, idx(3,0), 'w') && !isAttacked(state, idx(2,0), 'w')) moves.push({ from: idx(4,0), to: idx(2,0), castle: 'q' });
+}
+}
+return moves;
+}
+
+function getLegalMoves(state) {
+let raw = getPseudoMoves(state, state.turn), legal = [];
+for (let m of raw) {
+let next = applyMove(state, m);
+let kingColor = state.turn, oppColor = state.turn === 'w' ? 'b' : 'w';
+let kingChar = kingColor === 'w' ? 'K' : 'k';
+let kingSq = next.board.indexOf(kingChar);
+if (kingSq !== -1 && !isAttacked(next, kingSq, oppColor)) legal.push(m);
+}
+return legal;
+}
+
+function applyMove(state, move) {
+let next = state.clone();
+let p = next.board[move.from];
+if (move.cap || p.toUpperCase() === 'P') next.halfMoves = 0; else next.halfMoves++;
+next.board[move.to] = move.prom ? move.prom : p;
+next.board[move.from] = '';
+if (move.ep) { let dir = next.turn === 'w' ? 1 : -1; next.board[move.to + (dir * 8)] = ''; }
+if (move.castle) {
+if (move.castle === 'K') { next.board[idx(5,7)] = 'R'; next.board[idx(7,7)] = ''; }
+if (move.castle === 'Q') { next.board[idx(3,7)] = 'R'; next.board[idx(0,7)] = ''; }
+if (move.castle === 'k') { next.board[idx(5,0)] = 'r'; next.board[idx(7,0)] = ''; }
+if (move.castle === 'q') { next.board[idx(3,0)] = 'r'; next.board[idx(0,0)] = ''; }
+}
+if (p === 'K') { next.castling.wK = false; next.castling.wQ = false; }
+if (p === 'k') { next.castling.bK = false; next.castling.bQ = false; }
+if (move.from === idx(7,7) || move.to === idx(7,7)) next.castling.wK = false;
+if (move.from === idx(0,7) || move.to === idx(0,7)) next.castling.wQ = false;
+if (move.from === idx(7,0) || move.to === idx(7,0)) next.castling.bK = false;
+if (move.from === idx(0,0) || move.to === idx(0,0)) next.castling.bQ = false;
+if (move.double) { let dir = next.turn === 'w' ? -1 : 1; next.ep = move.from + dir * 8; } else next.ep = -1;
+next.turn = next.turn === 'w' ? 'b' : 'w';
+return next;
+}
+
+function evaluate(state, diffLvl) {
+let mgScore = 0, egScore = 0, gamePhase = 0;
+const phaseWeights = { n: 1, b: 1, r: 2, q: 4 };
+for (let i = 0; i < 64; i++) {
+let p = state.board[i];
+if (!p) continue;
+let type = p.toLowerCase(), isW = getColor(p) === 'w';
+if (type !== 'p' && type !== 'k') gamePhase += phaseWeights[type] || 0;
+let pstMgVal = isW ? PST_MG[type][i] : PST_MG_B[type][i];
+let pstEgVal = isW ? PST_EG[type][i] : PST_EG_B[type][i];
+if (isW) { mgScore += MG_WEIGHTS[type] + pstMgVal; egScore += EG_WEIGHTS[type] + pstEgVal; }
+else { mgScore -= MG_WEIGHTS[type] + pstMgVal; egScore -= EG_WEIGHTS[type] + pstEgVal; }
+}
+let mgPhase = Math.min(24, gamePhase), egPhase = 24 - mgPhase;
+let finalScore = (mgScore * mgPhase + egScore * egPhase) / 24;
+const noiseMax = Math.max(0, (10 - diffLvl) * 40);
+if (noiseMax > 0) finalScore += (Math.random() * noiseMax - noiseMax / 2);
+return finalScore;
+}
+
+function orderMoves(moves) {
+for (let m of moves) {
+m.score = 0;
+if (m.cap) m.score += 10;
+if (m.prom) m.score += 20;
+}
+moves.sort((a, b) => b.score - a.score);
+}
+
+function quiesce(state, alpha, beta, isMax, diffLvl, limit = 4) {
+aiNodes++;
+let standPat = evaluate(state, diffLvl);
+if (isMax) {
+if (standPat >= beta) return beta;
+if (standPat > alpha) alpha = standPat;
+if (limit <= 0) return alpha;
+let moves = getPseudoMoves(state, 'w').filter(m => m.cap);
+orderMoves(moves);
+for (let m of moves) {
+let next = applyMove(state, m);
+let score = quiesce(next, alpha, beta, false, diffLvl, limit - 1);
+if (score >= beta) return beta;
+if (score > alpha) alpha = score;
+}
+return alpha;
+} else {
+if (standPat <= alpha) return alpha;
+if (standPat < beta) beta = standPat;
+if (limit <= 0) return beta;
+let moves = getPseudoMoves(state, 'b').filter(m => m.cap);
+orderMoves(moves);
+for (let m of moves) {
+let next = applyMove(state, m);
+let score = quiesce(next, alpha, beta, true, diffLvl, limit - 1);
+if (score <= alpha) return alpha;
+if (score < beta) beta = score;
+}
+return beta;
+}
+}
+
+function minimax(state, depth, alpha, beta, isMax, diffLvl) {
+aiNodes++;
+if (depth <= 0) return quiesce(state, alpha, beta, isMax, diffLvl);
+if (aiNodes % 500 === 0 && Date.now() - aiStartTime > aiTimeLimit) throw new Error("Timeout");
+let moves = getLegalMoves(state);
+if (moves.length === 0) {
+let kingIdx = state.board.indexOf(isMax ? 'K' : 'k');
+if (isAttacked(state, kingIdx, isMax ? 'b' : 'w')) return isMax ? -99999 + depth : 99999 - depth;
+return 0;
+}
+orderMoves(moves);
+if (isMax) {
+let maxEval = -Infinity;
+for (let m of moves) {
+let ev = minimax(applyMove(state, m), depth - 1, alpha, beta, false, diffLvl);
+maxEval = Math.max(maxEval, ev);
+alpha = Math.max(alpha, ev);
+if (beta <= alpha) break;
+}
+return maxEval;
+} else {
+let minEval = Infinity;
+for (let m of moves) {
+let ev = minimax(applyMove(state, m), depth - 1, alpha, beta, true, diffLvl);
+minEval = Math.min(minEval, ev);
+beta = Math.min(beta, ev);
+if (beta <= alpha) break;
+}
+return minEval;
+}
+}
+
+function getBestMove(state, level) {
+aiNodes = 0; aiStartTime = Date.now();
+let maxDepth = Math.min(5, Math.floor((level + 1) / 2));
+if (maxDepth < 1) maxDepth = 1;
+aiTimeLimit = level * 300;
+let moves = getLegalMoves(state);
+if (moves.length === 0) return null;
+if (moves.length === 1) return moves[0];
+if (level < 5) moves.sort(() => Math.random() - 0.5);
+orderMoves(moves);
+let bestMove = moves[0], isMax = state.turn === 'w';
+try {
+for (let d = 1; d <= maxDepth; d++) {
+let currentDepthBestMove = null, currentDepthBestScore = isMax ? -Infinity : Infinity;
+let alpha = -Infinity, beta = Infinity;
+for (let m of moves) {
+let score = minimax(applyMove(state, m), d - 1, alpha, beta, !isMax, level);
+if (isMax) {
+if (score > currentDepthBestScore) { currentDepthBestScore = score; currentDepthBestMove = m; }
+alpha = Math.max(alpha, score);
+} else {
+if (score < currentDepthBestScore) { currentDepthBestScore = score; currentDepthBestMove = m; }
+beta = Math.min(beta, score);
+}
+}
+if (currentDepthBestMove) bestMove = currentDepthBestMove;
+}
+} catch(e) {}
+return bestMove;
+}
+
+function render() {
+const boardEl = document.getElementById('chess-board');
+boardEl.innerHTML = '';
+for (let i = 0; i < 64; i++) {
+const cell = document.createElement('div');
+const x = i % 8, y = Math.floor(i / 8);
+cell.className = `chess-square ${(x + y) % 2 === 0 ? 'chess-light' : 'chess-dark'}`;
+if (i === selectedSquare) cell.classList.add('chess-selected');
+let move = currentLegalMoves.find(m => m.to === i);
+if (move) cell.classList.add(move.cap ? 'chess-capture' : 'chess-highlight');
+let p = gameState.board[i];
+if (p) {
+const pDiv = document.createElement('div');
+pDiv.className = `chess-piece ${getColor(p) === 'w' ? 'white' : 'black'}`;
+pDiv.textContent = PIECES[p];
+cell.appendChild(pDiv);
+}
+cell.onclick = () => handleClick(i);
+boardEl.appendChild(cell);
+}
+}
+
+async function animateChessMove(move, isPlayerMove) {
+if (isAnimating) return;
+isAnimating = true;
+const squares = document.querySelectorAll('.chess-square');
+const fromSq = squares[move.from], toSq = squares[move.to];
+const pieceEl = fromSq.querySelector('.chess-piece');
+if (pieceEl) {
+const rectFrom = fromSq.getBoundingClientRect(), rectTo = toSq.getBoundingClientRect();
+const clone = pieceEl.cloneNode(true);
+clone.style.position = 'fixed'; clone.style.zIndex = '1000'; clone.style.pointerEvents = 'none';
+clone.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+clone.style.left = rectFrom.left + 'px'; clone.style.top = rectFrom.top + 'px';
+clone.style.width = rectFrom.width + 'px'; clone.style.height = rectFrom.height + 'px';
+clone.style.display = 'flex'; clone.style.justifyContent = 'center'; clone.style.alignItems = 'center';
+clone.style.margin = '0'; clone.style.fontSize = window.getComputedStyle(pieceEl).fontSize;
+document.body.appendChild(clone);
+pieceEl.style.visibility = 'hidden';
+void clone.offsetWidth;
+clone.style.transform = `translate(${rectTo.left - rectFrom.left}px, ${rectTo.top - rectFrom.top}px)`;
+await new Promise(r => setTimeout(r, 310));
+clone.remove();
+}
+gameState = applyMove(gameState, move);
+selectedSquare = -1; currentLegalMoves = [];
+isAnimating = false;
+render();
+if (!checkGameOver()) {
+if (isPlayerMove) {
+updateStatus("CPU TENKER...");
+isThinking = true;
+setTimeout(aiMakeMove, 50);
+} else {
+updateStatus("DIN TUR");
+}
+}
+}
+
+function handleClick(sq) {
+if (gameOver || isThinking || isAnimating || gameState.turn === 'b') return;
+let p = gameState.board[sq];
+if (selectedSquare === sq) { selectedSquare = -1; currentLegalMoves = []; render(); return; }
+if (selectedSquare === -1) {
+if (p && getColor(p) === 'w') { selectedSquare = sq; currentLegalMoves = getLegalMoves(gameState).filter(m => m.from === sq); render(); }
+} else {
+let move = currentLegalMoves.find(m => m.to === sq);
+if (move) animateChessMove(move, true);
+else {
+if (p && getColor(p) === 'w') { selectedSquare = sq; currentLegalMoves = getLegalMoves(gameState).filter(m => m.from === sq); render(); }
+else { selectedSquare = -1; currentLegalMoves = []; render(); }
+}
+}
+}
+
+function aiMakeMove() {
+if (gameOver) return;
+let move = getBestMove(gameState, currentLevel);
+if (move) animateChessMove(move, false);
+isThinking = false;
+}
+
+function checkGameOver() {
+let legal = getLegalMoves(gameState);
+if (legal.length === 0) {
+let kingColor = gameState.turn, oppColor = kingColor === 'w' ? 'b' : 'w';
+let kingChar = kingColor === 'w' ? 'K' : 'k';
+let kingSq = gameState.board.indexOf(kingChar);
+if (isAttacked(gameState, kingSq, oppColor)) {
+if (kingColor === 'w') handleGameEnd("CPU VANT (SJAKKMATT)!", false);
+else handleGameEnd("DU VANT!", true);
+} else {
+handleGameEnd("REMIS (PATT)!", false);
+}
+return true;
+}
+if (gameState.halfMoves >= 100) { handleGameEnd("REMIS VED 50 TREKK!", false); return true; }
+let currentStateStr = gameState.getSimplifiedState();
+let count = gameState.history.filter(s => s === currentStateStr).length;
+if (count >= 3) { handleGameEnd("REMIS VED TREKKGJENTAKELSE!", false); return true; }
+let activePieces = gameState.board.filter(p => p !== '');
+if (activePieces.length === 2) { handleGameEnd("REMIS (UTILSTREKKELIG MATERIELL)!", false); return true; }
+else if (activePieces.length === 3) {
+let pieceTypes = activePieces.map(p => p.toUpperCase());
+if (pieceTypes.includes('B') || pieceTypes.includes('N')) { handleGameEnd("REMIS (UTILSTREKKELIG MATERIELL)!", false); return true; }
+}
+return false;
+}
+
+function handleGameEnd(text, playerWon) {
+gameOver = true;
+updateStatus("SPILLET ER SLUTT");
+document.getElementById('chess-game-over-text').textContent = text;
+const actionBtn = document.getElementById('chess-action-btn');
+if (playerWon) {
+actionBtn.textContent = "Start Neste Runde";
+actionBtn.onclick = () => { currentLevel++; localStorage.setItem('chessLevel', currentLevel); init(); };
+} else {
+actionBtn.textContent = "Prøv Igjen";
+actionBtn.onclick = init;
+}
+document.getElementById('chess-game-over').style.display = 'flex';
+}
+return {
+start: () => { if (!isInitialized) init(); },
+resetDifficulty: () => {
+if(confirm("Nullstill vanskelighetsgrad til Nivå 1 i Sjakk?")) {
+localStorage.removeItem('chessLevel');
+currentLevel = 1;
+init();
+}
+}
+};
+})();
+window.onload = () => {
+ChessGame.start();
+};
+
+</script>
+</body>
+</html>

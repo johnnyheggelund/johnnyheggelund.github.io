@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mølle Brettspill (no)</title>
+
+<style>
+
+:root {
+--bg-color: #0f172a;
+--panel-bg: #1e293b;
+--border-color: #334155;
+--hover-color: #334155;
+--text-color: #f8fafc;
+--accent-color: #ef4444;
+--board-bg: #111827;
+--line-color: #94a3b8;
+--p1-color: #ef4444;
+--p2-color: #3b82f6;
+--shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+--radius: 16px;
+}
+body {
+background-color: var(--bg-color);
+color: var(--text-color);
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+display: flex;
+flex-direction: column;
+align-items: center;
+margin: 0;
+min-height: 100vh;
+min-height: 100dvh;
+overflow: hidden;
+font-weight: 500;
+-webkit-user-select: none;
+user-select: none;
+touch-action: manipulation;
+}
+button {
+background-color: var(--panel-bg);
+color: var(--text-color);
+border: 1px solid var(--border-color);
+padding: 8px 16px;
+font-size: 13px;
+font-weight: 600;
+cursor: pointer;
+border-radius: 8px;
+transition: all 0.2s ease;
+box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+button:hover {
+border-color: var(--accent-color);
+color: var(--text-color);
+background-color: var(--hover-color);
+box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+.game-screen {
+width: 100%;
+max-width: 600px;
+display: flex;
+flex-direction: column;
+align-items: center;
+height: 100vh;
+height: 100dvh;
+box-sizing: border-box;
+}
+.top-bar {
+width: 100%;
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 12px 16px;
+background-color: var(--panel-bg);
+border-bottom: 1px solid var(--border-color);
+box-sizing: border-box;
+box-shadow: var(--shadow);
+gap: 12px;
+z-index: 10;
+}
+.info-group {
+display: flex;
+flex-direction: column;
+text-align: left;
+}
+.level-display {
+font-size: 15px;
+font-weight: 800;
+color: #38bdf8;
+letter-spacing: 0.5px;
+}
+.game-title {
+font-size: 10px;
+font-weight: bold;
+text-transform: uppercase;
+letter-spacing: 1.5px;
+opacity: 0.5;
+margin-top: 2px;
+}
+.center-console {
+display: flex;
+flex-direction: column;
+align-items: center;
+flex-grow: 1;
+}
+.status-text {
+font-size: 13px;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 1px;
+color: var(--text-color);
+text-align: center;
+}
+.phase-text {
+font-size: 10px;
+opacity: 0.6;
+text-transform: uppercase;
+margin-top: 2px;
+letter-spacing: 0.5px;
+}
+.hand-counts {
+display: flex;
+width: 100%;
+justify-content: space-around;
+padding: 10px 16px;
+background-color: var(--panel-bg);
+border-bottom: 1px solid var(--border-color);
+font-size: 12px;
+font-weight: 600;
+box-sizing: border-box;
+gap: 12px;
+}
+.hand-player {
+display: flex;
+align-items: center;
+gap: 8px;
+padding: 4px 12px;
+border-radius: 20px;
+border: 1px solid transparent;
+opacity: 0.5;
+transition: all 0.3s ease;
+}
+.hand-player.active {
+opacity: 1;
+background: rgba(255, 255, 255, 0.05);
+border-color: rgba(255, 255, 255, 0.15);
+box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.hand-dot {
+width: 12px;
+height: 12px;
+border-radius: 50%;
+box-shadow: 0 0 6px currentColor;
+}
+.hand-dot.p1 {
+background-color: var(--p1-color);
+color: var(--p1-color);
+}
+.hand-dot.p2 {
+background-color: var(--p2-color);
+color: var(--p2-color);
+}
+.game-area {
+display: flex;
+justify-content: center;
+align-items: center;
+width: 100%;
+flex-grow: 1;
+padding: 16px;
+box-sizing: border-box;
+overflow: hidden;
+}
+.board-container {
+border: 4px solid var(--panel-bg);
+box-shadow: var(--shadow);
+border-radius: var(--radius);
+width: min(88vw, 88vh - 160px);
+height: min(88vw, 88vh - 160px);
+max-width: 480px;
+max-height: 480px;
+aspect-ratio: 1 / 1;
+box-sizing: border-box;
+position: relative;
+overflow: hidden;
+background-color: var(--board-bg);
+margin: auto;
+}
+#molle-inner-board {
+position: relative;
+width: 100%;
+height: 100%;
+}
+.board-line {
+position: absolute;
+box-sizing: border-box;
+border: 3px solid var(--line-color);
+opacity: 0.85;
+pointer-events: none;
+}
+.node {
+position: absolute;
+width: 28px;
+height: 28px;
+background-color: #1e293b;
+border: 3px solid var(--line-color);
+border-radius: 50%;
+transform: translate(-50%, -50%);
+cursor: pointer;
+z-index: 10;
+transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+.node:hover {
+border-color: #38bdf8;
+transform: translate(-50%, -50%) scale(1.2);
+box-shadow: 0 0 10px #38bdf8;
+}
+.node.p1 {
+background-color: var(--p1-color);
+border-color: #fca5a5;
+box-shadow: 0 0 12px rgba(239, 68, 68, 0.6), inset 0 -2px 4px rgba(0,0,0,0.4);
+}
+.node.p2 {
+background-color: var(--p2-color);
+border-color: #93c5fd;
+box-shadow: 0 0 12px rgba(59, 130, 246, 0.6), inset 0 -2px 4px rgba(0,0,0,0.4);
+}
+.node.selected {
+border: 3px solid #ffffff;
+outline: 4px solid #10b981;
+transform: translate(-50%, -50%) scale(1.15);
+box-shadow: 0 0 15px #10b981;
+}
+.node.move-target {
+background-color: rgba(16, 185, 129, 0.2);
+border: 3px dashed #10b981;
+animation: pulse 1.5s infinite;
+}
+.node.highlight {
+border: 3px solid var(--accent-color);
+box-shadow: 0 0 10px var(--accent-color);
+animation: pulse-remove 1s infinite;
+}
+@keyframes pulse {
+0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.7; }
+50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.7; }
+}
+@keyframes pulse-remove {
+0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); }
+70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.game-over-screen {
+display: none;
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(15, 23, 42, 0.95);
+backdrop-filter: blur(8px);
+z-index: 200;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+gap: 20px;
+text-align: center;
+padding: 24px;
+box-sizing: border-box;
+}
+.game-over-text {
+font-size: 28px;
+font-weight: 800;
+color: var(--text-color);
+margin: 0;
+letter-spacing: 0.5px;
+line-height: 1.3;
+}
+.game-over-btn {
+font-size: 16px;
+padding: 12px 28px;
+background-color: var(--accent-color);
+color: white;
+border: none;
+border-radius: 10px;
+font-weight: bold;
+box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+cursor: pointer;
+}
+.game-over-btn:hover {
+background-color: #dc2626;
+color: white;
+transform: translateY(-1px);
+}
+#portrait-warning {
+display: none;
+position: fixed;
+top: 0; left: 0; width: 100vw; height: 100vh;
+background-color: var(--bg-color);
+z-index: 9999;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+text-align: center;
+padding: 20px;
+box-sizing: border-box;
+}
+#portrait-warning h2 {
+color: var(--accent-color);
+margin-bottom: 15px;
+font-size: 26px;
+}
+@media (orientation: landscape) and (pointer: coarse) {
+#portrait-warning {
+display: flex;
+}
+}
+</style>
+</head>
+
+<body>
+
+<div id="portrait-warning">
+<h2>Vennligst snu enheten</h2>
+<p>Dette spillet fungerer best i stående (portrett) modus.</p>
+</div>
+<div id="molle-screen" class="game-screen">
+<div class="top-bar">
+<div class="info-group">
+<span id="molle-level" class="level-display">NIVÅ 1</span>
+<span class="game-title">Mølle</span>
+</div>
+<div class="center-console">
+<div id="molle-status" class="status-text">KLAR</div>
+<div id="molle-phase" class="phase-text">FASE: PLASSERING</div>
+</div>
+<button onclick="MolleGame.resetDifficulty()">Nullstill</button>
+</div>
+<div class="hand-counts">
+<div id="hand-p1" class="hand-player">
+<div class="hand-dot p1"></div>
+Dine: <span id="molle-p1-count">9</span>
+</div>
+<div id="hand-p2" class="hand-player">
+<div class="hand-dot p2"></div>
+CPU: <span id="molle-p2-count">9</span>
+</div>
+</div>
+<div class="game-area">
+<div class="board-container">
+<div id="molle-inner-board"></div>
+<div id="molle-game-over" class="game-over-screen">
+<h1 id="molle-game-over-text" class="game-over-text">DU VANT!</h1>
+<button id="molle-action-btn" class="game-over-btn"></button>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+
+const MolleGame = (function() {
+const ADJACENCY = {
+0:[1,9], 1:[0,2,4], 2:[1,14], 3:[4,10], 4:[1,3,5,7], 5:[4,13],
+6:[7,11], 7:[4,6,8], 8:[7,12], 9:[0,10,21], 10:[3,9,11,18], 11:[6,10,15],
+12:[8,13,17], 13:[5,12,14,20], 14:[2,13,23], 15:[11,16], 16:[15,17,19], 17:[12,16],
+18:[10,19], 19:[16,18,20,22], 20:[13,19], 21:[9,22], 22:[21,23,19], 23:[14,22]
+};
+const ACTUAL_MILLS = [
+[0,1,2], [3,4,5], [6,7,8], [9,10,11], [12,13,14], [15,16,17], [18,19,20], [21,22,23],
+[0,9,21], [3,10,18], [6,11,15], [1,4,7], [8,12,17], [5,13,20], [2,14,23], [16,19,22]
+];
+const POSITIONS = [
+{x:5,y:5},   {x:50,y:5},  {x:95,y:5},
+{x:20,y:20}, {x:50,y:20}, {x:80,y:20},
+{x:35,y:35}, {x:50,y:35}, {x:65,y:35},
+{x:5,y:50},  {x:20,y:50}, {x:35,y:50}, {x:65,y:50}, {x:80,y:50}, {x:95,y:50},
+{x:35,y:65}, {x:50,y:65}, {x:65,y:65},
+{x:20,y:80}, {x:50,y:80}, {x:80,y:80},
+{x:5,y:95},  {x:50,y:95}, {x:95,y:95}
+];
+let gameState, gameOver = false, isInitialized = false, isThinking = false;
+let currentLevel = parseInt(localStorage.getItem('molleLevel')) || 1;
+
+function updateStatus(txt) { document.getElementById('molle-status').textContent = txt; }
+
+function init() {
+document.getElementById('molle-level').textContent = `NIVÅ ${currentLevel}`;
+document.getElementById('molle-game-over').style.display = 'none';
+gameState = {
+board: new Array(24).fill(0),
+phase: 1,
+turn: 1,
+p1Hand: 9, p2Hand: 9,
+selectedNode: -1,
+mustRemove: false
+};
+gameOver = false;
+isThinking = false;
+buildBoardUI();
+updateView();
+isInitialized = true;
+}
+
+function buildBoardUI() {
+const innerBoard = document.getElementById('molle-inner-board');
+innerBoard.innerHTML = '';
+const squares = [
+{pos: 5, size: 90},
+{pos: 20, size: 60},
+{pos: 35, size: 30}
+];
+squares.forEach(sq => {
+const line = document.createElement('div');
+line.className = 'board-line';
+line.style.left = sq.pos + '%'; line.style.top = sq.pos + '%';
+line.style.width = sq.size + '%'; line.style.height = sq.size + '%';
+innerBoard.appendChild(line);
+});
+const crossLines = [
+{left:50, top:5, width:0, height:30},
+{left:50, top:65, width:0, height:30},
+{left:5, top:50, width:30, height:0},
+{left:65, top:50, width:30, height:0}
+];
+crossLines.forEach(lineData => {
+const line = document.createElement('div');
+line.className = 'board-line';
+line.style.left = lineData.left + '%'; line.style.top = lineData.top + '%';
+if(lineData.width === 0) {
+line.style.borderLeft = '3px solid var(--line-color)';
+line.style.height = lineData.height + '%';
+} else {
+line.style.borderTop = '3px solid var(--line-color)';
+line.style.width = lineData.width + '%';
+}
+innerBoard.appendChild(line);
+});
+POSITIONS.forEach((pos, idx) => {
+const node = document.createElement('div');
+node.id = 'node-' + idx;
+node.className = 'node';
+node.style.left = pos.x + '%';
+node.style.top = pos.y + '%';
+node.onclick = () => handleNodeClick(idx);
+innerBoard.appendChild(node);
+});
+}
+
+function countPieces(player, board) {
+return board.filter(p => p === player).length;
+}
+
+function updateView() {
+let validTargets = [];
+const player = gameState.turn;
+const isFlying = (gameState.phase === 2 && countPieces(player, gameState.board) === 3);
+const p1HandEl = document.getElementById('hand-p1');
+const p2HandEl = document.getElementById('hand-p2');
+if (gameState.turn === 1) {
+p1HandEl.classList.add('active');
+p2HandEl.classList.remove('active');
+} else {
+p1HandEl.classList.remove('active');
+p2HandEl.classList.add('active');
+}
+if (gameState.phase === 2 && gameState.selectedNode !== -1) {
+if (isFlying) {
+for (let i = 0; i < 24; i++) if (gameState.board[i] === 0) validTargets.push(i);
+} else {
+validTargets = ADJACENCY[gameState.selectedNode].filter(p => gameState.board[p] === 0);
+}
+}
+for (let i = 0; i < 24; i++) {
+const node = document.getElementById('node-' + i);
+node.className = 'node';
+if (gameState.board[i] === 1) node.classList.add('p1');
+if (gameState.board[i] === 2) node.classList.add('p2');
+if (i === gameState.selectedNode) node.classList.add('selected');
+if (validTargets.includes(i)) node.classList.add('move-target');
+if (gameState.mustRemove) {
+const opp = gameState.turn === 1 ? 2 : 1;
+if (gameState.board[i] === opp && (!checkMill(i, gameState.board) || allPiecesInMill(opp, gameState.board))) {
+node.classList.add('highlight');
+}
+}
+}
+const p1B = countPieces(1, gameState.board), p2B = countPieces(2, gameState.board);
+document.getElementById('molle-p1-count').textContent = gameState.phase === 1 ? gameState.p1Hand : p1B;
+document.getElementById('molle-p2-count').textContent = gameState.phase === 1 ? gameState.p2Hand : p2B;
+if (gameOver) return;
+let statusText = gameState.turn === 1 ? "DIN TUR" : "CPU TENKER...";
+if (gameState.mustRemove) statusText = gameState.turn === 1 ? "MØLLE! FJERN BRIKKE" : "CPU FJERNER...";
+updateStatus(statusText);
+let phaseText = "FASE: PLASSERING";
+if (gameState.phase === 2) phaseText = isFlying ? "FASE: FLYVNING (3 BRIKKER)" : "FASE: FLYTTING";
+document.getElementById('molle-phase').textContent = phaseText;
+}
+
+function handleNodeClick(idx) {
+if (gameOver || isThinking || (gameState.turn === 2)) return;
+const player = gameState.turn;
+if (gameState.mustRemove) {
+if (removePiece(idx, player)) {
+gameState.mustRemove = false;
+endTurn();
+}
+return;
+}
+if (gameState.phase === 1) {
+if (gameState.board[idx] === 0) {
+makeMove({ type: 'place', to: idx }, player);
+}
+} else {
+const isFlying = (countPieces(player, gameState.board) === 3);
+if (gameState.board[idx] === player) {
+gameState.selectedNode = (gameState.selectedNode === idx) ? -1 : idx;
+updateView();
+} else if (gameState.board[idx] === 0 && gameState.selectedNode !== -1) {
+if (isFlying || ADJACENCY[gameState.selectedNode].includes(idx)) {
+makeMove({ type: 'move', from: gameState.selectedNode, to: idx }, player);
+}
+}
+}
+}
+
+function makeMove(move, player) {
+let formedMill = false;
+if (move.type === 'place') {
+gameState.board[move.to] = player;
+player === 1 ? gameState.p1Hand-- : gameState.p2Hand--;
+if (checkMill(move.to, gameState.board)) formedMill = true;
+} else {
+gameState.board[move.from] = 0;
+gameState.board[move.to] = player;
+gameState.selectedNode = -1;
+if (checkMill(move.to, gameState.board)) formedMill = true;
+}
+if (formedMill) {
+gameState.mustRemove = true;
+updateView();
+if (player === 2) {
+isThinking = true;
+setTimeout(aiRemove, 700);
+}
+} else {
+endTurn();
+}
+}
+
+function removePiece(idx, player) {
+const opp = player === 1 ? 2 : 1;
+if (gameState.board[idx] !== opp) return false;
+if (checkMill(idx, gameState.board) && !allPiecesInMill(opp, gameState.board)) return false;
+gameState.board[idx] = 0;
+return true;
+}
+
+function endTurn() {
+if (gameState.p1Hand === 0 && gameState.p2Hand === 0 && gameState.phase === 1) {
+gameState.phase = 2;
+}
+if (checkWin()) return;
+gameState.turn = gameState.turn === 1 ? 2 : 1;
+updateView();
+if (gameState.turn === 2 && !gameState.mustRemove) {
+isThinking = true;
+setTimeout(aiTurn, 600);
+}
+}
+
+function checkMill(idx, board) {
+const p = board[idx];
+if (p === 0) return false;
+return ACTUAL_MILLS.some(mill => mill.includes(idx) && mill.every(pos => board[pos] === p));
+}
+
+function allPiecesInMill(player, board) {
+for (let i = 0; i < 24; i++) {
+if (board[i] === player && !checkMill(i, board)) return false;
+}
+return true;
+}
+
+function checkWin() {
+if (gameState.phase === 1) return false;
+const p1Count = countPieces(1, gameState.board);
+const p2Count = countPieces(2, gameState.board);
+if (p1Count < 3) { handleGameEnd("CPU VANT!", false); return true; }
+if (p2Count < 3) { handleGameEnd("DU VANT!", true); return true; }
+const nextPlayer = gameState.turn === 1 ? 2 : 1;
+const moves = generateMoves(nextPlayer, gameState.board, nextPlayer === 1 ? gameState.p1Hand : gameState.p2Hand, nextPlayer === 2 ? gameState.p1Hand : gameState.p2Hand);
+if (moves.length === 0) {
+if (nextPlayer === 1) { handleGameEnd("CPU VANT!<br><span style='font-size:14px'>(Ingen lovlige trekk)</span>", false); }
+else { handleGameEnd("DU VANT!<br><span style='font-size:14px'>(Ingen lovlige trekk)</span>", true); }
+return true;
+}
+return false;
+}
+
+function handleGameEnd(text, playerWon) {
+gameOver = true;
+isThinking = false;
+updateStatus("SPILLET ER SLUTT");
+document.getElementById('molle-game-over-text').innerHTML = text;
+const actionBtn = document.getElementById('molle-action-btn');
+if (playerWon) {
+actionBtn.textContent = "Start Neste Runde";
+actionBtn.onclick = () => { currentLevel++; localStorage.setItem('molleLevel', currentLevel); init(); };
+} else {
+actionBtn.textContent = "Prøv Igjen";
+actionBtn.onclick = init;
+}
+document.getElementById('molle-game-over').style.display = 'flex';
+}
+
+function aiTurn() {
+if (gameOver) return;
+const move = getBestMove();
+isThinking = false;
+if (move) makeMove(move, 2);
+}
+
+function aiRemove() {
+if (gameOver) return;
+const rem = getRemovablePieces(1, gameState.board);
+if (rem.length > 0) {
+const target = rem.sort((a,b) => {
+return ADJACENCY[b].filter(n => gameState.board[n]===0).length - ADJACENCY[a].filter(n => gameState.board[n]===0).length;
+})[0];
+removePiece(target, 2);
+}
+gameState.mustRemove = false;
+isThinking = false;
+endTurn();
+}
+
+function getRemovablePieces(opp, board) {
+const c = [], allMill = allPiecesInMill(opp, board);
+for(let i=0; i<24; i++) if(board[i] === opp && (allMill || !checkMill(i, board))) c.push(i);
+return c;
+}
+
+function generateMoves(player, board, p1H, p2H) {
+let moves = [], hand = player === 1 ? p1H : p2H;
+if (hand > 0) {
+for(let i=0; i<24; i++) if(board[i] === 0) moves.push({type:'place', to:i});
+} else {
+const isFlying = (countPieces(player, board) === 3);
+for(let i=0; i<24; i++) {
+if(board[i] === player) {
+if (isFlying) {
+for(let j=0; j<24; j++) if(board[j] === 0) moves.push({type:'move', from:i, to:j});
+} else {
+ADJACENCY[i].forEach(nxt => { if(board[nxt] === 0) moves.push({type:'move', from:i, to:nxt}); });
+}
+}
+}
+}
+return moves;
+}
+
+function evaluateBoard(board) {
+const p1 = countPieces(1, board), p2 = countPieces(2, board);
+let score = (p2 - p1) * 100;
+for(let i=0; i<24; i++) {
+if(board[i] === 2) score += ADJACENCY[i].filter(n => board[n]===0).length * 5;
+if(board[i] === 1) score -= ADJACENCY[i].filter(n => board[n]===0).length * 5;
+}
+return score;
+}
+
+function minimaxMolle(board, depth, alpha, beta, isMax, p1H, p2H) {
+if (depth === 0) return evaluateBoard(board);
+let player = isMax ? 2 : 1;
+let moves = generateMoves(player, board, p1H, p2H);
+if (moves.length === 0) return isMax ? -10000 : 10000;
+if (isMax) {
+let maxEval = -Infinity;
+for (let m of moves) {
+let nb = [...board];
+if (m.type === 'place') nb[m.to] = 2; else { nb[m.from] = 0; nb[m.to] = 2; }
+let score = minimaxMolle(nb, depth - 1, alpha, beta, false, p1H, p2H - (m.type==='place'?1:0));
+maxEval = Math.max(maxEval, score);
+alpha = Math.max(alpha, score);
+if (beta <= alpha) break;
+}
+return maxEval;
+} else {
+let minEval = Infinity;
+for (let m of moves) {
+let nb = [...board];
+if (m.type === 'place') nb[m.to] = 1; else { nb[m.from] = 0; nb[m.to] = 1; }
+let score = minimaxMolle(nb, depth - 1, alpha, beta, true, p1H - (m.type==='place'?1:0), p2H);
+minEval = Math.min(minEval, score);
+beta = Math.min(beta, score);
+if (beta <= alpha) break;
+}
+return minEval;
+}
+}
+
+function getBestMove() {
+let moves = generateMoves(2, gameState.board, gameState.p1Hand, gameState.p2Hand);
+if (moves.length === 0) return null;
+let depth = Math.min(3, Math.floor(1 + (currentLevel / 4)));
+let fuzziness = Math.max(0, 50 - (currentLevel * 3));
+let bestScore = -Infinity;
+let bestMoves = [];
+for (let m of moves) {
+let nb = [...gameState.board];
+let formedMill = false;
+if (m.type === 'place') {
+nb[m.to] = 2;
+if (checkMill(m.to, nb)) formedMill = true;
+} else {
+nb[m.from] = 0; nb[m.to] = 2;
+if (checkMill(m.to, nb)) formedMill = true;
+}
+let score = formedMill ? 800 : minimaxMolle(nb, depth, -Infinity, Infinity, false, gameState.p1Hand, gameState.p2Hand - (m.type === 'place' ? 1 : 0));
+if (fuzziness > 0) score += (Math.random() * fuzziness * 2) - fuzziness;
+if (score > bestScore) {
+bestScore = score;
+bestMoves = [m];
+} else if (score === bestScore) {
+bestMoves.push(m);
+}
+}
+return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+}
+return {
+start: () => { if (!isInitialized) init(); },
+resetDifficulty: () => {
+if(confirm("Nullstill vanskelighetsgrad til Nivå 1 i Mølle?")) {
+localStorage.removeItem('molleLevel');
+currentLevel = 1;
+init();
+}
+}
+};
+})();
+window.onload = () => {
+MolleGame.start();
+};
+
+</script>
+</body>
+</html>

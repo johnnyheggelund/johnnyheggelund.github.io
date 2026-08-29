@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Othello Brettspill (no)</title>
+
+<style>
+
+:root {
+--bg-color: #f3f4f6;
+--panel-bg: #ffffff;
+--border-color: #e5e7eb;
+--hover-color: #f9fafb;
+--text-color: #1f2937;
+--accent-color: #e05a47;
+--board-bg: #4baf73;
+--board-border: #3b8c5a;
+--p1-color: #1f2937;
+--p2-color: #ffffff;
+--shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+--radius: 16px;
+}
+body {
+background-color: var(--bg-color);
+color: var(--text-color);
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+display: flex;
+flex-direction: column;
+align-items: center;
+margin: 0;
+min-height: 100vh;
+min-height: 100dvh;
+overflow: hidden;
+font-weight: 500;
+-webkit-user-select: none;
+user-select: none;
+touch-action: manipulation;
+}
+button {
+background-color: var(--panel-bg);
+color: var(--text-color);
+border: 1px solid var(--border-color);
+padding: 10px 18px;
+font-size: 14px;
+font-weight: 600;
+cursor: pointer;
+border-radius: 8px;
+transition: all 0.2s ease;
+box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+-webkit-tap-highlight-color: transparent;
+}
+button:hover {
+border-color: var(--accent-color);
+color: var(--accent-color);
+background-color: var(--hover-color);
+box-shadow: 0 4px 6px -1px rgba(224, 90, 71, 0.15);
+}
+.game-screen {
+width: 100%;
+max-width: 600px;
+display: flex;
+flex-direction: column;
+align-items: center;
+height: 100vh;
+height: 100dvh;
+box-sizing: border-box;
+}
+.top-bar {
+width: 100%;
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 14px 20px;
+background-color: var(--panel-bg);
+border-bottom: 1px solid var(--border-color);
+box-sizing: border-box;
+box-shadow: var(--shadow);
+gap: 12px;
+}
+.info-group {
+display: flex;
+flex-direction: column;
+text-align: left;
+}
+.level-display {
+font-size: 16px;
+font-weight: 800;
+color: var(--accent-color);
+letter-spacing: 0.5px;
+}
+.game-title {
+font-size: 11px;
+font-weight: bold;
+text-transform: uppercase;
+letter-spacing: 1.5px;
+opacity: 0.5;
+margin-top: 2px;
+}
+.center-console {
+display: flex;
+flex-direction: column;
+align-items: center;
+flex-grow: 1;
+}
+.status-text {
+font-size: 14px;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 1px;
+color: var(--text-color);
+text-align: center;
+}
+.score-panel {
+display: flex;
+width: 100%;
+justify-content: space-around;
+padding: 12px 20px;
+background-color: var(--panel-bg);
+border-bottom: 1px solid var(--border-color);
+font-size: 14px;
+font-weight: 700;
+box-sizing: border-box;
+}
+.score-box {
+display: flex;
+align-items: center;
+gap: 8px;
+padding: 4px 14px;
+border-radius: 6px;
+transition: all 0.3s ease;
+}
+.score-box.current-turn {
+background-color: rgba(224, 90, 71, 0.1);
+outline: 1.5px solid var(--accent-color);
+}
+.disc-preview {
+width: 18px;
+height: 18px;
+border-radius: 50%;
+box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
+}
+.disc-preview.black {
+background-color: var(--p1-color);
+border: 1px solid #000;
+}
+.disc-preview.white {
+background-color: var(--p2-color);
+border: 1px solid #ccc;
+}
+.game-area {
+display: flex;
+justify-content: center;
+align-items: center;
+width: 100%;
+flex-grow: 1;
+padding: 16px;
+box-sizing: border-box;
+overflow: hidden;
+min-height: 0;
+}
+.board-container {
+border: 6px solid var(--panel-bg);
+box-shadow: var(--shadow);
+border-radius: var(--radius);
+aspect-ratio: 1 / 1;
+width: 100%;
+max-width: calc(100dvh - 190px);
+max-height: calc(100dvh - 190px);
+box-sizing: border-box;
+position: relative;
+overflow: hidden;
+background-color: var(--board-border);
+margin: auto;
+}
+#othello-board {
+display: grid;
+grid-template-columns: repeat(8, 1fr);
+grid-template-rows: repeat(8, 1fr);
+width: 100%;
+height: 100%;
+gap: 1px;
+}
+.othello-square {
+background-color: var(--board-bg);
+display: flex;
+justify-content: center;
+align-items: center;
+position: relative;
+cursor: pointer;
+user-select: none;
+width: 100%;
+height: 100%;
+box-sizing: border-box;
+}
+.disc-container {
+width: 82%;
+height: 82%;
+position: relative;
+perspective: 1000px;
+}
+.othello-disc {
+width: 100%;
+height: 100%;
+border-radius: 50%;
+position: absolute;
+box-shadow: 0 4px 6px rgba(0,0,0,0.25), inset 0 -2px 4px rgba(0,0,0,0.15);
+transform-style: preserve-3d;
+transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.othello-disc.black {
+background: radial-gradient(circle at 30% 30%, #3a3f47 0%, var(--p1-color) 70%);
+border: 1px solid #111;
+transform: rotateY(0deg);
+}
+.othello-disc.white {
+background: radial-gradient(circle at 30% 30%, #ffffff 0%, #e5e7eb 70%);
+border: 1px solid #d1d5db;
+transform: rotateY(0deg);
+}
+.othello-disc.flipped {
+transform: rotateY(180deg);
+}
+.othello-hint {
+position: absolute;
+width: 24%;
+height: 24%;
+background-color: rgba(31, 41, 55, 0.25);
+border-radius: 50%;
+top: 50%; left: 50%;
+transform: translate(-50%, -50%);
+pointer-events: none;
+transition: all 0.2s ease;
+box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+.othello-square:hover .othello-hint {
+background-color: var(--accent-color);
+width: 34%;
+height: 34%;
+opacity: 0.9;
+}
+.game-over-screen {
+display: none;
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(255, 255, 255, 0.96);
+backdrop-filter: blur(8px);
+z-index: 200;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+gap: 24px;
+text-align: center;
+padding: 20px;
+box-sizing: border-box;
+}
+.game-over-text {
+font-size: 28px;
+font-weight: 800;
+color: var(--text-color);
+margin: 0;
+letter-spacing: 0.5px;
+line-height: 1.3;
+}
+.game-over-btn {
+font-size: 16px;
+padding: 12px 28px;
+background-color: var(--accent-color);
+color: white;
+border: none;
+border-radius: 10px;
+font-weight: bold;
+box-shadow: 0 4px 6px rgba(224, 90, 71, 0.2);
+}
+.game-over-btn:hover {
+background-color: #cb4a38;
+color: white;
+transform: translateY(-1px);
+}
+#portrait-warning {
+display: none;
+position: fixed;
+top: 0; left: 0; width: 100vw; height: 100vh;
+background-color: var(--bg-color);
+z-index: 9999;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+text-align: center;
+padding: 20px;
+box-sizing: border-box;
+}
+#portrait-warning h2 {
+color: var(--accent-color);
+margin-bottom: 15px;
+font-size: 26px;
+}
+@media (orientation: landscape) and (pointer: coarse) {
+#portrait-warning { display: flex; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="portrait-warning">
+<h2>Vennligst snu enheten</h2>
+<p>Dette spillet fungerer best i stående (portrett) modus.</p>
+</div>
+<div id="othello-screen" class="game-screen">
+<div class="top-bar">
+<div class="info-group">
+<span id="othello-level" class="level-display">NIVÅ 1</span>
+<span class="game-title">Othello</span>
+</div>
+<div class="center-console">
+<div id="othello-status" class="status-text">KLAR</div>
+</div>
+<button onclick="OthelloGame.resetDifficulty()">Nullstill</button>
+</div>
+<div class="score-panel">
+<div id="othello-b-box" class="score-box current-turn">
+<div class="disc-preview black"></div>
+<span>Deg: <span id="othello-b-score">2</span></span>
+</div>
+<div id="othello-w-box" class="score-box">
+<div class="disc-preview white"></div>
+<span>CPU: <span id="othello-w-score">2</span></span>
+</div>
+</div>
+<div class="game-area">
+<div class="board-container">
+<div id="othello-board"></div>
+<div id="othello-game-over" class="game-over-screen">
+<h1 id="othello-game-over-text" class="game-over-text">DU VANT!</h1>
+<button id="othello-action-btn" class="game-over-btn"></button>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+
+const OthelloGame = (function() {
+const BOARD_SIZE = 8;
+const EMPTY = 0, BLACK = 1, WHITE = 2;
+const V = [
+[100, -20,  10,   5,   5,  10, -20, 100],
+[-20, -50,  -2,  -2,  -2,  -2, -50, -20],
+[ 10,  -2,   5,   1,   1,   5,  -2,  10],
+[  5,  -2,   1,   1,   1,   1,  -2,   5],
+[  5,  -2,   1,   1,   1,   1,  -2,   5],
+[ 10,  -2,   5,   1,   1,   5,  -2,  10],
+[-20, -50,  -2,  -2,  -2,  -2, -50, -20],
+[100, -20,  10,   5,   5,  10, -20, 100]
+];
+const DIRS = [
+[-1,-1], [-1,0], [-1,1],
+[ 0,-1],         [ 0,1],
+[ 1,-1], [ 1,0], [ 1,1]
+];
+let board = [];
+let turn = BLACK;
+let gameOver = false;
+let isThinking = false;
+let currentLevel = parseInt(localStorage.getItem('othelloLevel')) || 1;
+let isInitialized = false;
+
+function updateStatus(txt) { document.getElementById('othello-status').textContent = txt; }
+
+function init() {
+document.getElementById('othello-level').textContent = `NIVÅ ${currentLevel}`;
+document.getElementById('othello-game-over').style.display = 'none';
+board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(EMPTY));
+board[3][3] = WHITE; board[3][4] = BLACK;
+board[4][3] = BLACK; board[4][4] = WHITE;
+turn = BLACK;
+gameOver = false;
+isThinking = false;
+render(true);
+updateScoreUI();
+updateStatus("DIN TUR");
+isInitialized = true;
+}
+
+function render(showHints = false) {
+const boardEl = document.getElementById('othello-board');
+boardEl.innerHTML = '';
+const playerValidMoves = showHints ? getValidMoves(board, BLACK) : [];
+for (let r = 0; r < BOARD_SIZE; r++) {
+for (let c = 0; c < BOARD_SIZE; c++) {
+const sq = document.createElement('div');
+sq.className = 'othello-square';
+const state = board[r][c];
+if (state !== EMPTY) {
+const container = document.createElement('div');
+container.className = 'disc-container';
+const disc = document.createElement('div');
+disc.className = `othello-disc ${state === BLACK ? 'black' : 'white'}`;
+container.appendChild(disc);
+sq.appendChild(container);
+} else if (turn === BLACK && playerValidMoves.some(m => m.r === r && m.c === c)) {
+const hint = document.createElement('div');
+hint.className = 'othello-hint';
+sq.appendChild(hint);
+}
+sq.onclick = () => handleSquareClick(r, c);
+boardEl.appendChild(sq);
+}
+}
+if (turn === BLACK) {
+document.getElementById('othello-b-box').classList.add('current-turn');
+document.getElementById('othello-w-box').classList.remove('current-turn');
+} else {
+document.getElementById('othello-w-box').classList.add('current-turn');
+document.getElementById('othello-b-box').classList.remove('current-turn');
+}
+}
+
+function updateScoreUI() {
+let b = 0, w = 0;
+for (let r = 0; r < BOARD_SIZE; r++) {
+for (let c = 0; c < BOARD_SIZE; c++) {
+if (board[r][c] === BLACK) b++;
+if (board[r][c] === WHITE) w++;
+}
+}
+document.getElementById('othello-b-score').textContent = b;
+document.getElementById('othello-w-score').textContent = w;
+return { black: b, white: w };
+}
+
+function getValidMoves(currentBoard, player) {
+let moves = [];
+for (let r = 0; r < BOARD_SIZE; r++) {
+for (let c = 0; c < BOARD_SIZE; c++) {
+if (currentBoard[r][c] === EMPTY) {
+let flipped = getFlippedDiscs(currentBoard, r, c, player);
+if (flipped.length > 0) moves.push({ r: r, c: c, flipped: flipped });
+}
+}
+}
+return moves;
+}
+
+function getFlippedDiscs(currentBoard, row, col, player) {
+let allFlipped = [];
+let opp = player === BLACK ? WHITE : BLACK;
+for (let d of DIRS) {
+let dr = d[0], dc = d[1];
+let r = row + dr, c = col + dc;
+let candidates = [];
+while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+if (currentBoard[r][c] === opp) {
+candidates.push({ r: r, c: c });
+} else if (currentBoard[r][c] === player) {
+if (candidates.length > 0) allFlipped.push(...candidates);
+break;
+} else {
+break;
+}
+r += dr; c += dc;
+}
+}
+return allFlipped;
+}
+
+async function makeMove(row, col, flipped, player) {
+board[row][col] = player;
+document.querySelectorAll('.othello-hint').forEach(el => el.remove());
+const squares = document.querySelectorAll('.othello-square');
+const centerIdx = row * BOARD_SIZE + col;
+const container = document.createElement('div');
+container.className = 'disc-container';
+const newDisc = document.createElement('div');
+newDisc.className = `othello-disc ${player === BLACK ? 'black' : 'white'}`;
+container.appendChild(newDisc);
+squares[centerIdx].appendChild(container);
+flipped.forEach(f => {
+let idx = f.r * BOARD_SIZE + f.c;
+let discEl = squares[idx].querySelector('.othello-disc');
+if (discEl) {
+discEl.classList.add('flipped');
+}
+});
+await new Promise(res => setTimeout(res, 600));
+flipped.forEach(f => {
+board[f.r][f.c] = player;
+});
+render(false);
+updateScoreUI();
+switchTurn();
+}
+
+function handleSquareClick(r, c) {
+if (gameOver || isThinking || turn === WHITE) return;
+let validMoves = getValidMoves(board, BLACK);
+let move = validMoves.find(m => m.r === r && m.c === c);
+if (move) {
+makeMove(r, c, move.flipped, BLACK);
+}
+}
+
+function switchTurn() {
+turn = turn === BLACK ? WHITE : BLACK;
+let nextMoves = getValidMoves(board, turn);
+if (nextMoves.length === 0) {
+turn = turn === BLACK ? WHITE : BLACK;
+let backMoves = getValidMoves(board, turn);
+if (backMoves.length === 0) {
+handleGameEnd();
+return;
+} else {
+updateStatus(turn === BLACK ? "CPU PASSER! DIN TUR" : "DU PASSER! CPU TENKER...");
+render(turn === BLACK);
+if (turn === WHITE) {
+isThinking = true;
+setTimeout(aiTurn, 600);
+}
+}
+} else {
+updateStatus(turn === BLACK ? "DIN TUR" : "CPU TENKER...");
+render(turn === BLACK);
+if (turn === WHITE) {
+isThinking = true;
+setTimeout(aiTurn, 600);
+}
+}
+}
+
+function aiTurn() {
+if (gameOver) return;
+let validMoves = getValidMoves(board, WHITE);
+if (validMoves.length === 0) { isThinking = false; switchTurn(); return; }
+let maxDepth = Math.min(4, Math.floor(1 + currentLevel / 3));
+let fuzziness = Math.max(0, 40 - currentLevel * 3);
+let bestMove = null;
+let bestScore = -Infinity;
+for (let m of validMoves) {
+let tempBoard = board.map(row => [...row]);
+tempBoard[m.r][m.c] = WHITE;
+m.flipped.forEach(f => tempBoard[f.r][f.c] = WHITE);
+let score = minimax(tempBoard, maxDepth - 1, -Infinity, Infinity, false);
+if (fuzziness > 0) score += (Math.random() * fuzziness * 2) - fuzziness;
+if (score > bestScore) {
+bestScore = score;
+bestMove = m;
+}
+}
+isThinking = false;
+if (bestMove) makeMove(bestMove.r, bestMove.c, bestMove.flipped, WHITE);
+}
+
+function evaluateBoard(currentBoard) {
+let score = 0;
+for (let r = 0; r < BOARD_SIZE; r++) {
+for (let c = 0; c < BOARD_SIZE; c++) {
+if (currentBoard[r][c] === WHITE) score += V[r][c];
+else if (currentBoard[r][c] === BLACK) score -= V[r][c];
+}
+}
+return score;
+}
+
+function minimax(currentBoard, depth, alpha, beta, isMax) {
+if (depth === 0) return evaluateBoard(currentBoard);
+let pMoves = getValidMoves(currentBoard, isMax ? WHITE : BLACK);
+if (pMoves.length === 0) {
+let oppMoves = getValidMoves(currentBoard, isMax ? BLACK : WHITE);
+if (oppMoves.length === 0) {
+let wCount = 0, bCount = 0;
+for (let r = 0; r < BOARD_SIZE; r++) {
+for (let c = 0; c < BOARD_SIZE; c++) {
+if (currentBoard[r][c] === WHITE) wCount++;
+if (currentBoard[r][c] === BLACK) bCount++;
+}
+}
+return wCount > bCount ? 10000 : -10000;
+}
+return minimax(currentBoard, depth - 1, alpha, beta, !isMax);
+}
+if (isMax) {
+let maxEval = -Infinity;
+for (let m of pMoves) {
+let nextB = currentBoard.map(row => [...row]);
+nextB[m.r][m.c] = WHITE;
+m.flipped.forEach(f => nextB[f.r][f.c] = WHITE);
+let ev = minimax(nextB, depth - 1, alpha, beta, false);
+maxEval = Math.max(maxEval, ev);
+alpha = Math.max(alpha, ev);
+if (beta <= alpha) break;
+}
+return maxEval;
+} else {
+let minEval = Infinity;
+for (let m of pMoves) {
+let nextB = currentBoard.map(row => [...row]);
+nextB[m.r][m.c] = BLACK;
+m.flipped.forEach(f => nextB[f.r][f.c] = BLACK);
+let ev = minimax(nextB, depth - 1, alpha, beta, true);
+minEval = Math.min(minEval, ev);
+beta = Math.min(beta, ev);
+if (beta <= alpha) break;
+}
+return minEval;
+}
+}
+
+function handleGameEnd() {
+gameOver = true;
+updateStatus("SPILLET ER SLUTT");
+const scores = updateScoreUI();
+let resultText = "";
+let playerWon = false;
+if (scores.black > scores.white) {
+resultText = "DU VANT!";
+playerWon = true;
+} else if (scores.white > scores.black) {
+resultText = "CPU VANT!";
+} else {
+resultText = "UAVGJORT!";
+}
+document.getElementById('othello-game-over-text').innerHTML = `${resultText}<br><span style="font-size:22px; font-weight:600; color:#e05a47">${scores.black} - ${scores.white}</span>`;
+const actionBtn = document.getElementById('othello-action-btn');
+if (playerWon) {
+actionBtn.textContent = "Start Neste Runde";
+actionBtn.onclick = () => { currentLevel++; localStorage.setItem('othelloLevel', currentLevel); init(); };
+} else {
+actionBtn.textContent = "Prøv Igjen";
+actionBtn.onclick = init;
+}
+document.getElementById('othello-game-over').style.display = 'flex';
+}
+return {
+start: () => { if (!isInitialized) init(); },
+resetDifficulty: () => {
+if (confirm("Nullstill vanskelighetsgrad til Nivå 1 i Othello?")) {
+localStorage.removeItem('othelloLevel');
+currentLevel = 1;
+init();
+}
+}
+};
+})();
+window.onload = () => {
+OthelloGame.start();
+};
+
+</script>
+</body>
+</html>

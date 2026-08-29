@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Monopol Bordspill (no)</title>
+
+<style>
+
+* {
+box-sizing: border-box;
+touch-action: manipulation;
+-webkit-user-select: none;
+user-select: none;
+-webkit-touch-callout: none;
+}
+body {
+margin: 0; padding: 0;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+background: #111; color: #fff;
+height: 100dvh; width: 100dvw;
+overflow: hidden;
+display: flex;
+flex-direction: column;
+}
+#setup-screen {
+position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+background: #111; z-index: 1000;
+display: flex; flex-direction: column; justify-content: center; align-items: center;
+gap: 20px; text-align: center; padding: 20px;
+}
+#setup-screen h1 {
+color: #d32f2f; margin-bottom: 0; text-transform: uppercase; letter-spacing: 3px; font-size: 40px;
+}
+#setup-screen p {
+color: #aaa; font-size: 16px; max-width: 400px; margin-bottom: 20px;
+}
+.menu-btn {
+font-size: 20px; padding: 15px 40px; width: 100%; max-width: 300px;
+background: #4caf50; color: white; border: none; border-radius: 8px; font-weight: bold;
+box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer;
+}
+#app {
+display: none;
+flex-direction: column;
+justify-content: space-between;
+height: 100dvh;
+width: 100dvw;
+position: relative;
+}
+.player-stats {
+height: 60px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 0 20px;
+font-size: 22px;
+font-weight: bold;
+background: #222;
+z-index: 20;
+box-shadow: 0 0 15px rgba(0,0,0,0.8);
+}
+#p2-stats {
+transform: rotate(180deg);
+border-bottom: 2px solid #f44336;
+}
+#p1-stats {
+border-top: 2px solid #2196f3;
+}
+.p-money { font-family: monospace; font-size: 26px; }
+#play-area {
+flex: 1;
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+width: 100%;
+min-height: 0;
+}
+#board-container {
+aspect-ratio: 1 / 1;
+max-width: 100vw;
+max-height: calc(100% - 70px);
+width: 100%;
+display: flex;
+justify-content: center;
+align-items: center;
+}
+.board {
+width: 100%;
+height: 100%;
+display: grid;
+grid-template-columns: repeat(11, 1fr);
+grid-template-rows: repeat(11, 1fr);
+background: #cbf0e1;
+border: 2px solid #000;
+}
+#controls-container {
+height: 70px;
+width: 100%;
+display: flex;
+align-items: center;
+justify-content: center;
+background: #1a1a1a;
+}
+.controls-row {
+display: flex;
+gap: 10px;
+justify-content: center;
+flex-wrap: wrap;
+padding: 0 10px;
+}
+button {
+padding: 12px 20px; font-size: 16px; font-weight: bold;
+background: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer;
+box-shadow: 0 3px 5px rgba(0,0,0,0.3); transition: transform 0.1s;
+}
+button:active { transform: translateY(2px); box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+button:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; }
+#buy-btn { background: #2196f3; display: none; }
+#pass-btn { background: #f44336; display: none; }
+#end-btn { background: #ff9800; display: none; }
+#pay-jail-btn { background: #9c27b0; display: none; }
+.cell {
+border: 1px solid #333;
+position: relative;
+color: #000;
+background: #cbf0e1;
+font-size: clamp(8px, 1.8vmin, 14px);
+text-align: center;
+line-height: 1.1;
+cursor: pointer;
+}
+.center-area {
+grid-column: 2 / 11;
+grid-row: 2 / 11;
+background: #cbf0e1;
+display: flex;
+flex-direction: column;
+padding: 10px;
+pointer-events: auto;
+gap: 5px;
+}
+#dice-display {
+font-size: clamp(30px, 8vmin, 50px);
+letter-spacing: 5px;
+color: #111;
+text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+text-align: center;
+margin: 0;
+line-height: 1;
+}
+#action-log {
+flex: 1;
+background: #fff; border: 2px inset #ccc;
+overflow-y: auto; padding: 10px;
+font-size: clamp(12px, 2.5vmin, 16px);
+text-align: left; color: #000;
+border-radius: 6px;
+}
+.log-entry { margin-bottom: 4px; border-bottom: 1px solid #eee; padding: 4px; border-radius: 4px; }
+.token-container {
+position: absolute; top: 50%; left: 50%;
+transform: translate(-50%, -50%);
+display: flex; gap: 3px; z-index: 10;
+pointer-events: none;
+}
+.house { width: clamp(6px, 1.5vmin, 12px); height: clamp(6px, 1.5vmin, 12px); background: #4caf50; border: 1px solid #000; }
+.hotel { width: clamp(8px, 2vmin, 16px); height: clamp(8px, 2vmin, 16px); background: #f44336; border: 1px solid #000; }
+@keyframes pulse {
+0% { transform: scale(1); box-shadow: 0 0 4px #000; }
+50% { transform: scale(1.3); box-shadow: 0 0 12px #fff; }
+100% { transform: scale(1); box-shadow: 0 0 4px #000; }
+}
+.token {
+width: clamp(12px, 2.5vmin, 20px); height: clamp(12px, 2.5vmin, 20px);
+border-radius: 50%; border: 2px solid #fff;
+box-shadow: 0 0 4px #000;
+animation: pulse 1s infinite ease-in-out;
+}
+.emoji-display { font-size: clamp(14px, 3vmin, 24px); margin-bottom: 2px; pointer-events: none; }
+.price { color: #333; pointer-events: none; font-size: clamp(7px, 1.5vmin, 11px); font-weight: bold; }
+</style>
+</head>
+
+<body>
+
+<div id="setup-screen">
+<h1>Monopol</h1>
+<p>Legg iPaden flatt på bordet mellom dere. Spiller 1 sitter nede ved knappen, og Spiller 2 på motsatt side. Brettet roterer automatisk når det byttes tur!</p>
+<button class="menu-btn" onclick="startGame()">Start Spill (2 Spillere)</button>
+</div>
+<div id="app">
+<div id="p2-stats" class="player-stats">
+<span style="color: #f44336;">👤 Spiller 2</span>
+<span id="p2-money" class="p-money">$1500</span>
+</div>
+<div id="play-area">
+<div id="board-container">
+<div class="board" id="board"></div>
+</div>
+<div id="controls-container">
+<div class="controls-row">
+<button id="roll-btn" onclick="rollDice()">Kast terninger</button>
+<button id="pay-jail-btn" onclick="humanPayJail()">Betal $50</button>
+<button id="buy-btn" onclick="humanBuy()">Kjøp</button>
+<button id="pass-btn" onclick="humanPass()">Stå over</button>
+<button id="end-btn" onclick="humanEndTurn()">Avslutt tur</button>
+</div>
+</div>
+</div>
+<div id="p1-stats" class="player-stats">
+<span style="color: #2196f3;">👤 Spiller 1</span>
+<span id="p1-money" class="p-money">$1500</span>
+</div>
+</div>
+
+<script>
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (event) {
+const now = (new Date()).getTime();
+if (now - lastTouchEnd <= 300) {
+event.preventDefault();
+}
+lastTouchEnd = now;
+}, { passive: false });
+const spaces = [
+{id: 0, name: "START", emoji: "🏁", type: "go"},
+{id: 1, name: "Middelhavsgata", emoji: "🪨", type: "property", color: "brown", price: 60, housePrice: 50, houses: 0, rents: [2, 10, 30, 90, 160, 250]},
+{id: 2, name: "Prøv lykken", emoji: "🎁", type: "chest"},
+{id: 3, name: "Østersjøgata", emoji: "⛪", type: "property", color: "brown", price: 60, housePrice: 50, houses: 0, rents: [4, 20, 60, 180, 320, 450]},
+{id: 4, name: "Inntektsskatt", emoji: "💸", type: "tax", amount: 200},
+{id: 5, name: "Reading stasjon", emoji: "🚂", type: "railroad", price: 200, rent: 25},
+{id: 6, name: "Orientgata", emoji: "👑", type: "property", color: "lightblue", price: 100, housePrice: 50, houses: 0, rents: [6, 30, 90, 270, 400, 550]},
+{id: 7, name: "Sjanse", emoji: "❓", type: "chance"},
+{id: 8, name: "Vermontgata", emoji: "🤴", type: "property", color: "lightblue", price: 100, housePrice: 50, houses: 0, rents: [6, 30, 90, 270, 400, 550]},
+{id: 9, name: "Connecticutgata", emoji: "🏰", type: "property", color: "lightblue", price: 120, housePrice: 50, houses: 0, rents: [8, 40, 100, 300, 450, 600]},
+{id: 10, name: "Fengsel", emoji: "🚓", type: "jail"},
+{id: 11, name: "St. Charles-pl.", emoji: "🏯", type: "property", color: "pink", price: 140, housePrice: 100, houses: 0, rents: [10, 50, 150, 450, 625, 750]},
+{id: 12, name: "E-verk", emoji: "💡", type: "utility", price: 150},
+{id: 13, name: "States-gata", emoji: "💒", type: "property", color: "pink", price: 140, housePrice: 100, houses: 0, rents: [10, 50, 150, 450, 625, 750]},
+{id: 14, name: "Virginiagata", emoji: "🛂", type: "property", color: "pink", price: 160, housePrice: 100, houses: 0, rents: [12, 60, 180, 500, 700, 900]},
+{id: 15, name: "Penn stasjon", emoji: "🎭", type: "railroad", price: 200, rent: 25},
+{id: 16, name: "St. James-pl.", emoji: "🌹", type: "property", color: "orange", price: 180, housePrice: 100, houses: 0, rents: [14, 70, 200, 550, 750, 950]},
+{id: 17, name: "Prøv lykken", emoji: "🎁", type: "chest"},
+{id: 18, name: "Tennesseeg.", emoji: "🚧", type: "property", color: "orange", price: 180, housePrice: 100, houses: 0, rents: [14, 70, 200, 550, 750, 950]},
+{id: 19, name: "New York-g.", emoji: "🦁", type: "property", color: "orange", price: 200, housePrice: 100, houses: 0, rents: [16, 80, 220, 600, 800, 1000]},
+{id: 20, name: "Gratis park.", emoji: "🅿️", type: "parking"},
+{id: 21, name: "Kentuckygata", emoji: "🎵", type: "property", color: "red", price: 220, housePrice: 150, houses: 0, rents: [18, 90, 250, 700, 875, 1050]},
+{id: 22, name: "Sjanse", emoji: "❓", type: "chance"},
+{id: 23, name: "Indianagata", emoji: "🛍️", type: "property", color: "red", price: 220, housePrice: 150, houses: 0, rents: [18, 90, 250, 700, 875, 1050]},
+{id: 24, name: "Illinoisgata", emoji: "🧥", type: "property", color: "red", price: 240, housePrice: 150, houses: 0, rents: [20, 100, 300, 750, 925, 1100]},
+{id: 25, name: "B. & O. stasjon", emoji: "🚉", type: "railroad", price: 200, rent: 25},
+{id: 26, name: "Atlanterhavsg.", emoji: "🌳", type: "property", color: "yellow", price: 260, housePrice: 150, houses: 0, rents: [22, 110, 330, 800, 975, 1150]},
+{id: 27, name: "Ventnorgata", emoji: "🌲", type: "property", color: "yellow", price: 260, housePrice: 150, houses: 0, rents: [22, 110, 330, 800, 975, 1150]},
+{id: 28, name: "Vannverk", emoji: "🚰", type: "utility", price: 150},
+{id: 29, name: "Marvin Gard.", emoji: "🐸", type: "property", color: "yellow", price: 280, housePrice: 150, houses: 0, rents: [24, 120, 360, 850, 1025, 1200]},
+{id: 30, name: "Gå i fengsel", emoji: "🚨", type: "gotojail"},
+{id: 31, name: "Stillehavsgata", emoji: "⚓", type: "property", color: "green", price: 300, housePrice: 200, houses: 0, rents: [26, 130, 390, 900, 1100, 1275]},
+{id: 32, name: "N. Carolina-g.", emoji: "🛡️", type: "property", color: "green", price: 300, housePrice: 200, houses: 0, rents: [26, 130, 390, 900, 1100, 1275]},
+{id: 33, name: "Prøv lykken", emoji: "🎁", type: "chest"},
+{id: 34, name: "Penn-gata", emoji: "🛣️", type: "property", color: "green", price: 320, housePrice: 200, houses: 0, rents: [28, 150, 450, 1000, 1200, 1400]},
+{id: 35, name: "Short L. stasjon", emoji: "🚤", type: "railroad", price: 200, rent: 25},
+{id: 36, name: "Sjanse", emoji: "❓", type: "chance"},
+{id: 37, name: "Parkveien", emoji: "🌭", type: "property", color: "darkblue", price: 350, housePrice: 200, houses: 0, rents: [35, 175, 500, 1100, 1300, 1500]},
+{id: 38, name: "Luksusskatt", emoji: "💎", type: "tax", amount: 100},
+{id: 39, name: "Rådhusplassen", emoji: "💂‍♂️", type: "property", color: "darkblue", price: 400, housePrice: 200, houses: 0, rents: [50, 200, 600, 1400, 1700, 2000]}
+];
+const groups = {
+brown: [1, 3], lightblue: [6, 8, 9], pink: [11, 13, 14], orange: [16, 18, 19],
+red: [21, 23, 24], yellow: [26, 27, 28], green: [31, 32, 34], darkblue: [37, 39],
+railroad: [5, 15, 25, 35], utility: [12, 28]
+};
+const cards = [
+{ type: 'move', text: "Rykk frem til 🏁 START. Motta $200.", action: (p) => advanceTo(p, 0) },
+{ type: 'money', text: "Bankfeil i din favør. Motta $200.", action: (p) => p.money += 200 },
+{ type: 'money', text: "Legeutgifter. Betal $50.", action: (p) => p.money -= 50 },
+{ type: 'move', text: "Gå direkte i fengsel. Ikke passér START.", action: (p) => sendToJail(p) },
+{ type: 'money', text: "Du har bursdag. Motta $10 fra hver spiller.", action: (p) => { players.forEach(other => { if(other.id !== p.id) { other.money -= 10; p.money += 10; } }); } },
+{ type: 'money', text: "Betal sykehusregning på $100.", action: (p) => p.money -= 100 },
+{ type: 'money', text: "Fartsbot. Betal $15.", action: (p) => p.money -= 15 },
+{ type: 'money', text: "Vunnet i skjønnhetskonkurranse. Motta $10.", action: (p) => p.money += 10 },
+{ type: 'move', text: "Rykk frem til 💂‍♂️ Rådhusplassen.", action: (p) => advanceTo(p, 39) },
+{ type: 'move', text: "Rykk 3 felt tilbake.", action: (p) => movePlayer(p, -3) },
+{ type: 'keep', text: "Slipp ut av fengsel gratis. Beholdes til bruk.", action: (p) => { p.jailCards = (p.jailCards || 0) + 1; } },
+{ type: 'move', text: "Rykk frem til 🚂 Reading stasjon.", action: (p) => advanceTo(p, 5) },
+{ type: 'move', text: "Rykk frem til 🦁 New York-gata.", action: (p) => advanceTo(p, 19) },
+{ type: 'money', text: "Valgt til styreleder. Betal hver spiller $50.", action: (p) => { players.forEach(other => { if(other.id !== p.id) { p.money -= 50; other.money += 50; } }); } },
+{ type: 'money', text: "Betal skolepenger på $50.", action: (p) => p.money -= 50 },
+{ type: 'money', text: "Baksmell på skatten! Betal $150.", action: (p) => p.money -= 150 },
+{ type: 'money', text: "Du arver $100.", action: (p) => p.money += 100 },
+{ type: 'money', text: "Livsforsikring utbetales. Motta $100.", action: (p) => p.money += 100 },
+{ type: 'money', text: "Salg av aksjer. Motta $50.", action: (p) => p.money += 50 },
+{ type: 'move', text: "Rykk frem til 🎭 Penn stasjon.", action: (p) => advanceTo(p, 15) }
+];
+let turn = 0;
+let state = 'SETUP';
+let diceDoubleCount = 0;
+let lastDiceTotal = 0;
+let boardRotation = 0;
+let players = [];
+
+function startGame() {
+document.getElementById('setup-screen').style.display = 'none';
+document.getElementById('app').style.display = 'flex';
+players = [
+{ id: 'p1', name: 'Spiller 1', money: 1500, pos: 0, color: '#2196f3', inJail: false },
+{ id: 'p2', name: 'Spiller 2', money: 1500, pos: 0, color: '#f44336', inJail: false }
+];
+state = 'WAITING_ROLL';
+createBoard();
+updateTokens();
+updateUI();
+log(`Spillet har startet! Legg enheten flatt. Det er ${players[0].name} sin tur.`);
+}
+
+function getGridPos(id) {
+if (id === 0) return { r: 11, c: 11 };
+if (id < 10) return { r: 11, c: 11 - id };
+if (id === 10) return { r: 11, c: 1 };
+if (id < 20) return { r: 11 - (id - 10), c: 1 };
+if (id === 20) return { r: 1, c: 1 };
+if (id < 30) return { r: 1, c: 1 + (id - 20) };
+if (id === 30) return { r: 1, c: 11 };
+if (id < 40) return { r: 1 + (id - 30), c: 11 };
+}
+
+function getColorBarStyles(id, color) {
+if (!color) return '';
+const colors = {
+brown: '#8b4513', lightblue: '#87ceeb', pink: '#ff69b4', orange: '#ffa500',
+red: '#f44336', yellow: '#ffeb3b', green: '#4caf50', darkblue: '#2196f3'
+};
+const bg = colors[color];
+if (id > 0 && id < 10) return `background:${bg}; width:100%; height:25%; position:absolute; top:0; left:0; border-bottom:1px solid #333; display:flex; justify-content:center; align-items:center; gap:2px;`;
+if (id > 10 && id < 20) return `background:${bg}; width:25%; height:100%; position:absolute; top:0; right:0; border-left:1px solid #333; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:2px;`;
+if (id > 20 && id < 30) return `background:${bg}; width:100%; height:25%; position:absolute; bottom:0; left:0; border-top:1px solid #333; display:flex; justify-content:center; align-items:center; gap:2px;`;
+if (id > 30 && id < 40) return `background:${bg}; width:25%; height:100%; position:absolute; top:0; left:0; border-right:1px solid #333; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:2px;`;
+return '';
+}
+
+function getPadding(id) {
+if (id > 0 && id < 10) return 'padding-top: 25%;';
+if (id > 10 && id < 20) return 'padding-right: 25%;';
+if (id > 20 && id < 30) return 'padding-bottom: 25%;';
+if (id > 30 && id < 40) return 'padding-left: 25%;';
+return '';
+}
+
+function createBoard() {
+const board = document.getElementById('board');
+board.innerHTML = '';
+for(let i=0; i<40; i++) {
+const space = spaces[i];
+const pos = getGridPos(i);
+const cell = document.createElement('div');
+cell.className = 'cell';
+cell.id = 'cell-' + i;
+cell.style.gridRow = pos.r;
+cell.style.gridColumn = pos.c;
+cell.onclick = () => tryBuildHouse(i);
+if (space.color) {
+const colorBar = document.createElement('div');
+colorBar.id = 'colorbar-' + i;
+colorBar.style.cssText = getColorBarStyles(i, space.color);
+cell.appendChild(colorBar);
+}
+const textWrap = document.createElement('div');
+textWrap.style.cssText = getPadding(i) + ' z-index: 1; pointer-events: none; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; box-sizing:border-box;';
+if (i === 0) { textWrap.innerHTML = `<div class="emoji-display">🏁</div><div class="price">+$200</div>`; }
+else if (i === 10) { textWrap.innerHTML = `<div class="emoji-display">🚓</div>`; }
+else if (i === 20) { textWrap.innerHTML = `<div class="emoji-display">🅿️</div>`; }
+else if (i === 30) { textWrap.innerHTML = `<div class="emoji-display">🚨</div>`; }
+else { textWrap.innerHTML = `<div class="emoji-display">${space.emoji}</div>` + (space.price ? `<div class="price">${space.price}</div>` : ''); }
+cell.appendChild(textWrap);
+const tokenContainer = document.createElement('div');
+tokenContainer.className = 'token-container';
+tokenContainer.id = 'tokens-' + i;
+cell.appendChild(tokenContainer);
+board.appendChild(cell);
+}
+const center = document.createElement('div');
+center.className = 'center-area';
+    center.innerHTML = `
+        <div id="dice-display">🎲 🎲</div>
+        <div id="action-log"></div>
+`;
+board.appendChild(center);
+}
+
+function tryBuildHouse(spaceId) {
+const space = spaces[spaceId];
+const player = players[turn];
+if (state !== 'WAITING_ROLL' && state !== 'WAITING_END') return;
+if (space.type !== 'property') return;
+if (space.owner !== player.id) { log("❌ Du kan bare bygge på egne eiendommer."); return; }
+const group = groups[space.color];
+const ownsAll = group.every(id => spaces[id].owner === player.id);
+if (!ownsAll) { log("❌ Eier ikke alle i fargegruppen."); return; }
+const minHouses = Math.min(...group.map(id => spaces[id].houses));
+if (space.houses > minHouses) { log("❌ Må bygge jevnt over fargegruppen."); return; }
+if (space.houses >= 5) { log("❌ Maks bygninger nådd (Hotell)."); return; }
+if (player.money < space.housePrice) { log("❌ Ikke nok penger ($" + space.housePrice + ")."); return; }
+player.money -= space.housePrice;
+space.houses++;
+const typeName = space.houses === 5 ? "hotell" : "hus";
+log(`🏠 ${player.name} bygde et ${typeName} på ${space.emoji} for $${space.housePrice}.`);
+updateBoardVisuals();
+updateUI();
+}
+
+function log(msg) {
+const logDiv = document.getElementById('action-log');
+if (!logDiv) return;
+const entry = document.createElement('div');
+entry.className = 'log-entry';
+entry.innerText = msg;
+if (msg.includes('Spiller 1') || msg.startsWith('Spiller 1')) {
+entry.style.backgroundColor = '#e3f2fd';
+entry.style.borderColor = '#bbdefb';
+} else if (msg.includes('Spiller 2') || msg.startsWith('Spiller 2')) {
+entry.style.backgroundColor = '#ffebee';
+entry.style.borderColor = '#ffcdd2';
+}
+logDiv.appendChild(entry);
+logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+function showDice(d1, d2) {
+const diceFaces = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+document.getElementById('dice-display').innerText = `${diceFaces[d1]} ${diceFaces[d2]}`;
+}
+
+function getPlayer(id) { return players.find(p => p.id === id); }
+
+function getPlayerName(id) { return getPlayer(id).name; }
+
+function getRent(spaceId, diceTotal) {
+const space = spaces[spaceId];
+const ownerId = space.owner;
+if (!ownerId) return 0;
+if (space.type === 'property') {
+const group = groups[space.color];
+const ownsAll = group.every(id => spaces[id].owner === ownerId);
+if (space.houses > 0) return space.rents[space.houses];
+return ownsAll ? space.rents[0] * 2 : space.rents[0];
+}
+if (space.type === 'railroad') {
+const count = groups.railroad.filter(id => spaces[id].owner === ownerId).length;
+return 25 * Math.pow(2, count - 1);
+}
+if (space.type === 'utility') {
+const count = groups.utility.filter(id => spaces[id].owner === ownerId).length;
+return count === 2 ? 10 * diceTotal : 4 * diceTotal;
+}
+return 0;
+}
+
+function checkBankruptcy(player) {
+if (player.money < 0) {
+log(`!!! ${player.name} er KONKURS !!!`);
+const winner = players.find(p => p.id !== player.id);
+log(`🎉 ${winner.name} vinner spillet! 🎉`);
+state = 'GAME_OVER';
+updateUI();
+hideActionButtons();
+}
+}
+
+function updateTokens() {
+for(let i=0; i<40; i++) {
+document.getElementById('tokens-' + i).innerHTML = '';
+document.getElementById('cell-' + i).style.backgroundColor = '';
+}
+players.forEach(p => {
+const token = document.createElement('div');
+token.className = 'token';
+token.style.background = p.color;
+document.getElementById('tokens-' + p.pos).appendChild(token);
+document.getElementById('cell-' + p.pos).style.backgroundColor = '#ffff99';
+});
+}
+
+function updateBoardVisuals() {
+for(let i=0; i<40; i++) {
+const space = spaces[i];
+const cell = document.getElementById('cell-' + i);
+if (space.owner) {
+cell.style.boxShadow = `inset 0 0 0 4px ${getPlayer(space.owner).color}`;
+}
+if (space.type === 'property' && space.color) {
+const cb = document.getElementById('colorbar-' + i);
+if (cb) {
+cb.innerHTML = '';
+if (space.houses === 5) {
+cb.innerHTML = '<div class="hotel"></div>';
+} else if (space.houses > 0) {
+for(let h=0; h<space.houses; h++) {
+cb.innerHTML += '<div class="house"></div>';
+}
+}
+}
+}
+}
+}
+
+function hideActionButtons() {
+document.getElementById('buy-btn').style.display = 'none';
+document.getElementById('pass-btn').style.display = 'none';
+document.getElementById('end-btn').style.display = 'none';
+document.getElementById('pay-jail-btn').style.display = 'none';
+document.getElementById('roll-btn').style.display = 'inline-block';
+}
+
+function showEndTurnButton() {
+hideActionButtons();
+document.getElementById('roll-btn').style.display = 'none';
+document.getElementById('end-btn').style.display = 'inline-block';
+}
+
+function updateUI() {
+if (players.length < 2) return;
+document.getElementById('p1-money').innerText = '$' + players[0].money;
+document.getElementById('p2-money').innerText = '$' + players[1].money;
+const rollBtn = document.getElementById('roll-btn');
+const payJailBtn = document.getElementById('pay-jail-btn');
+if (state === 'WAITING_ROLL') {
+rollBtn.disabled = false;
+if (players[turn].inJail && players[turn].money >= 50) {
+payJailBtn.style.display = 'inline-block';
+} else {
+payJailBtn.style.display = 'none';
+}
+} else {
+rollBtn.disabled = true;
+payJailBtn.style.display = 'none';
+}
+}
+
+function humanPayJail() {
+if (state !== 'WAITING_ROLL') return;
+const player = players[turn];
+if (!player.inJail || player.money < 50) return;
+player.money -= 50;
+player.inJail = false;
+diceDoubleCount = 0;
+log(`💸 ${player.name} betalte $50 for å komme ut av fengsel.`);
+document.getElementById('pay-jail-btn').style.display = 'none';
+updateUI();
+}
+
+function advanceTo(player, target) {
+let stepsToMove = target - player.pos;
+if (stepsToMove <= 0) stepsToMove += 40;
+movePlayer(player, stepsToMove);
+}
+
+function movePlayer(player, amount) {
+let stepsTaken = 0;
+let isForward = amount > 0;
+let targetSteps = Math.abs(amount);
+document.getElementById('roll-btn').disabled = true;
+
+function takeStep() {
+stepsTaken++;
+if (isForward) {
+player.pos++;
+if (player.pos >= 40) {
+player.pos = 0;
+player.money += 200;
+log(`${player.name} passerte START. Mottok $200.`);
+updateUI();
+}
+} else {
+player.pos--;
+if (player.pos < 0) player.pos = 39;
+}
+updateTokens();
+if (stepsTaken < targetSteps) {
+setTimeout(takeStep, 200);
+} else {
+resolveSpace(player, player.pos);
+}
+}
+if (targetSteps > 0) setTimeout(takeStep, 200);
+else resolveSpace(player, player.pos);
+}
+
+function sendToJail(player) {
+player.pos = 10;
+player.inJail = true;
+diceDoubleCount = 0;
+log(`🚓 ${player.name} er sendt i fengsel!`);
+updateTokens();
+finishTurn();
+}
+
+function drawCard(player) {
+const card = cards[Math.floor(Math.random() * cards.length)];
+log(`${player.name} trekker: "${card.text}"`);
+card.action(player);
+if (card.type === 'money' || card.type === 'keep') {
+players.forEach(p => checkBankruptcy(p));
+if (state !== 'GAME_OVER') finishTurn();
+}
+}
+
+function buyProperty(player, space) {
+if (player.money >= space.price) {
+player.money -= space.price;
+space.owner = player.id;
+log(`${player.name} kjøpte ${space.emoji} ${space.name} for $${space.price}.`);
+updateBoardVisuals();
+updateUI();
+}
+}
+
+function resolveSpace(player, spaceId) {
+const space = spaces[spaceId];
+log(`${player.name} landet på ${space.emoji} ${space.name}.`);
+if (space.type === 'property' || space.type === 'railroad' || space.type === 'utility') {
+if (!space.owner) {
+state = 'WAITING_ACTION';
+document.getElementById('buy-btn').style.display = 'inline-block';
+document.getElementById('buy-btn').innerText = `Kjøp ($${space.price})`;
+document.getElementById('pass-btn').style.display = 'inline-block';
+document.getElementById('roll-btn').style.display = 'none';
+} else if (space.owner !== player.id) {
+const rent = getRent(spaceId, lastDiceTotal);
+log(`💸 ${player.name} betaler $${rent} i leie til ${getPlayerName(space.owner)}.`);
+player.money -= rent;
+getPlayer(space.owner).money += rent;
+checkBankruptcy(player);
+if (state !== 'GAME_OVER') finishTurn();
+} else {
+finishTurn();
+}
+} else if (space.type === 'tax') {
+log(`💸 ${player.name} betaler $${space.amount} i skatt.`);
+player.money -= space.amount;
+checkBankruptcy(player);
+if (state !== 'GAME_OVER') finishTurn();
+} else if (space.type === 'chance' || space.type === 'chest') {
+drawCard(player);
+} else if (space.type === 'gotojail') {
+sendToJail(player);
+} else {
+finishTurn();
+}
+}
+
+function finishTurn() {
+updateUI();
+if (state === 'GAME_OVER') return;
+if (diceDoubleCount > 0 && diceDoubleCount < 3 && !players[turn].inJail) {
+state = 'WAITING_ROLL';
+hideActionButtons();
+log(`🎲 ${players[turn].name} kastet like! Kast på nytt.`);
+updateUI();
+} else {
+state = 'WAITING_END';
+showEndTurnButton();
+}
+}
+
+function endTurnSequence() {
+if (state === 'GAME_OVER') return;
+diceDoubleCount = 0;
+turn = (turn + 1) % players.length;
+state = 'WAITING_ROLL';
+boardRotation += 180;
+document.getElementById('play-area').style.transform = `rotate(${boardRotation}deg)`;
+log(`--- ${players[turn].name} sin tur ---`);
+hideActionButtons();
+updateUI();
+}
+
+function rollDice() {
+if (state !== 'WAITING_ROLL') return;
+const player = players[turn];
+const d1 = Math.floor(Math.random() * 6) + 1;
+const d2 = Math.floor(Math.random() * 6) + 1;
+lastDiceTotal = d1 + d2;
+showDice(d1, d2);
+log(`🎲 ${player.name} kastet ${d1} og ${d2} (${lastDiceTotal}).`);
+if (player.inJail && player.jailCards > 0) {
+log(`🎫 ${player.name} brukte et "Slipp ut av fengsel gratis"-kort!`);
+player.jailCards--;
+player.inJail = false;
+}
+if (player.inJail) {
+if (d1 === d2) {
+log(`🎉 ${player.name} kastet like og kommer seg ut av fengsel!`);
+player.inJail = false;
+diceDoubleCount = 0;
+} else {
+log(`🔒 ${player.name} kastet ikke like, og må bli i fengsel.`);
+state = 'RESOLVING';
+updateUI();
+finishTurn();
+return;
+}
+} else {
+if (d1 === d2) {
+diceDoubleCount++;
+if (diceDoubleCount === 3) {
+log(`Tre like på rad! Gå i fengsel.`);
+sendToJail(player);
+return;
+}
+} else {
+diceDoubleCount = 0;
+}
+}
+state = 'RESOLVING';
+updateUI();
+movePlayer(player, lastDiceTotal);
+}
+
+function humanBuy() {
+if (state !== 'WAITING_ACTION') return;
+const player = players[turn];
+buyProperty(player, spaces[player.pos]);
+hideActionButtons();
+finishTurn();
+}
+
+function humanPass() {
+if (state !== 'WAITING_ACTION') return;
+log(`${players[turn].name} valgte å ikke kjøpe.`);
+hideActionButtons();
+finishTurn();
+}
+
+function humanEndTurn() {
+if (state !== 'WAITING_END') return;
+endTurnSequence();
+}
+
+</script>
+</body>
+</html>

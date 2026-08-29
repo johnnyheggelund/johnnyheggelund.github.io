@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeminiCoder</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text x=%2250%22 y=%2275%22 font-size=%2280%22 text-anchor=%22middle%22>%F0%9F%A4%96</text></svg>">
+<style>
+html, body {
+margin: 0;
+padding: 0;
+background-color: #0d1117;
+height: 100vh;
+width: 100vw;
+overflow: hidden;
+font-family: sans-serif;
+display: flex;
+flex-direction: column;
+}
+#app-container {
+display: flex;
+flex: 1;
+width: 100vw;
+height: calc(100vh - 28px);
+overflow: hidden;
+}
+textarea#editor {
+width: 70%;
+height: 100%;
+margin: 0;
+padding: 20px;
+box-sizing: border-box;
+background-color: #0d1117;
+color: #b0b7c3;
+border: none;
+border-right: 1px solid #30363d;
+outline: none;
+resize: none;
+font-family: monospace;
+font-size: 15px;
+white-space: pre;
+overflow-wrap: normal;
+overflow-x: auto;
+overflow-y: auto;
+caret-color: #ff9900;
+}
+#ai-chat-panel {
+width: 30%;
+height: 100%;
+background-color: #161b22;
+display: flex;
+flex-direction: column;
+box-sizing: border-box;
+}
+.ai-header {
+padding: 12px 16px;
+background-color: #0d1117;
+border-bottom: 1px solid #30363d;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+#ai-status {
+font-size: 12px;
+font-weight: bold;
+color: #8b949e;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+#ai-status.thinking { color: #ff9900; }
+#ai-status.finished { color: #7ee787; }
+#ai-status.error { color: #ff7b72; }
+#ai-config-btn {
+background: none;
+border: none;
+color: #7eb0ff;
+cursor: pointer;
+font-size: 16px;
+padding: 0;
+}
+#chat-history {
+flex: 1;
+padding: 16px;
+overflow-y: auto;
+display: flex;
+flex-direction: column;
+gap: 12px;
+font-size: 13px;
+line-height: 1.5;
+}
+.chat-msg {
+padding: 10px 12px;
+border-radius: 6px;
+max-width: 90%;
+white-space: pre-wrap;
+word-wrap: break-word;
+}
+.chat-msg.user {
+background-color: #1f6feb33;
+color: #c9d1d9;
+align-self: flex-end;
+border: 1px solid #1f6feb66;
+}
+.chat-msg.ai {
+background-color: #0d1117;
+color: #b0b7c3;
+align-self: flex-start;
+border: 1px solid #30363d;
+font-family: monospace;
+}
+.chat-input-area {
+padding: 12px;
+background-color: #0d1117;
+border-top: 1px solid #30363d;
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+textarea#ai-input {
+width: 100%;
+background: #161b22;
+border: 1px solid #30363d;
+color: #c9d1d9;
+padding: 10px;
+resize: none;
+font-family: sans-serif;
+height: 90px;
+outline: none;
+font-size: 13px;
+line-height: 1.4;
+box-sizing: border-box;
+border-radius: 6px;
+}
+textarea#ai-input:focus { border-color: #7eb0ff; }
+textarea#ai-input:disabled { opacity: 0.5; cursor: not-allowed; }
+#ai-message-out {
+font-size: 12px;
+color: #8b949e;
+min-height: 1.2em;
+}
+.ai-hints {
+font-size: 11px;
+color: #484f58;
+display: flex;
+justify-content: space-between;
+}
+#toast {
+position: fixed;
+bottom: 40px;
+left: 24px;
+background: #161b22;
+color: #7eb0ff;
+padding: 8px 16px;
+border-radius: 4px;
+border: 1px solid #30363d;
+font-size: 14px;
+opacity: 0;
+transition: opacity 0.3s ease;
+pointer-events: none;
+z-index: 1000;
+}
+#unsaved-dot {
+position: fixed;
+top: 16px;
+left: 16px;
+width: 12px;
+height: 12px;
+background-color: #ff9900;
+border-radius: 50%;
+opacity: 0;
+transition: opacity 0.3s ease;
+pointer-events: none;
+z-index: 1000;
+}
+#status-bar {
+height: 28px;
+background-color: #0d1117;
+border-top: 1px solid #30363d;
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 0 16px;
+box-sizing: border-box;
+font-size: 12px;
+color: #8b949e;
+flex-shrink: 0;
+z-index: 100;
+}
+.status-shortcuts span {
+margin-right: 16px;
+}
+.status-shortcuts strong {
+color: #c9d1d9;
+}
+.status-model {
+font-family: monospace;
+color: #7eb0ff;
+}
+.chat-msg.ai pre {
+position: relative;
+background: #161b22;
+border: 1px solid #30363d;
+border-radius: 6px;
+padding: 24px 12px 10px 12px;
+margin: 8px 0;
+overflow-x: auto;
+white-space: pre;
+}
+.chat-msg.ai code {
+font-family: monospace;
+font-size: 12px;
+color: #b0b7c3;
+}
+.copy-code-btn {
+position: absolute;
+top: 6px;
+right: 6px;
+background: #21262d;
+color: #c9d1d9;
+border: 1px solid #30363d;
+border-radius: 4px;
+padding: 2px 8px;
+font-size: 11px;
+cursor: pointer;
+transition: background 0.2s;
+}
+.copy-code-btn:hover {
+background: #30363d;
+color: #7eb0ff;
+}
+</style>
+</head>
+<body>
+<div id="app-container">
+<textarea id="editor" spellcheck="false" autofocus></textarea>
+<div id="ai-chat-panel">
+<div class="ai-header">
+<span id="ai-status">Ready</span>
+<button id="ai-config-btn" title="API Key Setup">⚙️</button>
+</div>
+<div id="chat-history"></div>
+<div class="chat-input-area">
+<textarea id="ai-input" placeholder="Ask about code or request changes..." spellcheck="false"></textarea>
+<div id="ai-message-out">Press Enter to send.</div>
+<div class="ai-hints">
+<span>Enter: Send</span>
+<span>Shift + Enter: New Line</span>
+</div>
+</div>
+</div>
+</div>
+<div id="status-bar">
+<div class="status-shortcuts">
+<span><strong>Alt+O</strong> Open</span>
+<span><strong>Alt+S</strong> Save</span>
+<span><strong>Alt+P</strong> Preview</span>
+<span><strong>Alt+A</strong> Chat Focus</span>
+</div>
+<div class="status-model" id="status-model-name">No API Key</div>
+</div>
+<div id="toast" class="unsearchable"></div>
+<div id="unsaved-dot"></div>
+<script>
+const editor = document.getElementById('editor');
+const toast = document.getElementById('toast');
+const unsavedDot = document.getElementById('unsaved-dot');
+let fileHandle = null;
+let fallbackFileName = 'code.html';
+let toastTimeout;
+let isUnsaved = false;
+let history = [];
+let historyIndex = -1;
+let inputTimeout;
+
+function saveState() {
+const val = editor.value;
+const start = editor.selectionStart;
+const end = editor.selectionEnd;
+if (historyIndex >= 0 && history[historyIndex].value === val) return;
+history = history.slice(0, historyIndex + 1);
+history.push({ value: val, start: start, end: end });
+historyIndex++;
+}
+
+function undo() {
+if (historyIndex > 0) {
+historyIndex--;
+const state = history[historyIndex];
+editor.value = state.value;
+editor.selectionStart = state.start;
+editor.selectionEnd = state.end;
+setUnsavedState(true);
+}
+}
+
+function redo() {
+if (historyIndex < history.length - 1) {
+historyIndex++;
+const state = history[historyIndex];
+editor.value = state.value;
+editor.selectionStart = state.start;
+editor.selectionEnd = state.end;
+setUnsavedState(true);
+}
+}
+
+function showToast(message) {
+clearTimeout(toastTimeout);
+toast.textContent = message;
+toast.style.opacity = '1';
+toastTimeout = setTimeout(() => {
+toast.style.opacity = '0';
+}, 3000);
+}
+
+function setUnsavedState(state) {
+isUnsaved = state;
+unsavedDot.style.opacity = isUnsaved ? '1' : '0';
+}
+
+async function handleOpen() {
+if (isUnsaved && !confirm("You have unsaved changes. Open a new file anyway?")) return;
+const finishOpen = (text, handle, fileName) => {
+fileHandle = handle;
+fallbackFileName = fileName;
+editor.value = text;
+editor.selectionStart = editor.selectionEnd = 0;
+history = [];
+historyIndex = -1;
+editor.focus();
+setUnsavedState(false);
+saveState();
+showToast("File opened");
+};
+if (window.showOpenFilePicker) {
+try {
+const [handle] = await window.showOpenFilePicker();
+const file = await handle.getFile();
+finishOpen(await file.text(), handle, file.name);
+} catch (err) {
+if (err.name !== 'AbortError') showToast("Failed to open file!");
+}
+} else {
+const input = document.createElement('input');
+input.type = 'file';
+input.accept = 'text/*, .html, .js, .css, .json, .txt';
+input.onchange = async (e) => {
+const file = e.target.files[0];
+if (file) {
+finishOpen(await file.text(), null, file.name);
+}
+};
+input.click();
+}
+}
+
+async function handleSave() {
+if (window.showSaveFilePicker) {
+try {
+if (!fileHandle) {
+fileHandle = await window.showSaveFilePicker({
+suggestedName: fallbackFileName,
+types: [{ description: 'Text Files', accept: { 'text/html': ['.html'], 'text/javascript': ['.js'], 'text/css': ['.css'], 'text/plain': ['.txt'] } }]
+});
+}
+const writable = await fileHandle.createWritable();
+await writable.write(editor.value);
+await writable.close();
+fallbackFileName = fileHandle.name;
+setUnsavedState(false);
+showToast("File saved");
+} catch (err) {
+if (err.name !== 'AbortError') showToast("Failed to save file!");
+}
+} else {
+try {
+const blob = new Blob([editor.value], { type: 'text/plain' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = fallbackFileName;
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+setUnsavedState(false);
+showToast("File downloaded");
+} catch (err) {
+showToast("Failed to save file!");
+}
+}
+}
+
+function handlePreview() {
+const win = window.open('about:blank', '_blank');
+if (win) { win.document.open(); win.document.write(editor.value); win.document.close(); }
+else { showToast("Preview blocked!"); }
+}
+
+function handleInput() {
+if (!isUnsaved) setUnsavedState(true);
+clearTimeout(inputTimeout);
+inputTimeout = setTimeout(saveState, 500);
+}
+
+function handleKeyDown(e) {
+if (e.ctrlKey && e.code === 'KeyZ') { e.preventDefault(); undo(); return; }
+if (e.ctrlKey && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
+if (e.altKey && e.code === 'KeyO') { e.preventDefault(); handleOpen(); return; }
+if (e.altKey && e.code === 'KeyS') { e.preventDefault(); handleSave(); return; }
+if (e.altKey && e.code === 'KeyP') { e.preventDefault(); handlePreview(); return; }
+if (e.altKey && e.code === 'KeyA') {
+e.preventDefault();
+gemini.input.focus();
+return;
+}
+if (e.target === editor && e.key === 'Tab') {
+e.preventDefault();
+saveState();
+const start = editor.selectionStart;
+const end = editor.selectionEnd;
+const value = editor.value;
+if (start === end && !e.shiftKey) {
+editor.value = value.substring(0, start) + "  " + value.substring(end);
+editor.selectionStart = editor.selectionEnd = start + 2;
+} else {
+const lineStartPos = value.lastIndexOf('\n', start - 1) + 1;
+let lineEndPos = value.indexOf('\n', end);
+if (lineEndPos === -1) lineEndPos = value.length;
+const lines = value.substring(lineStartPos, lineEndPos).split('\n');
+let firstLineLengthDiff = 0;
+let totalLengthDiff = 0;
+const newLines = lines.map((line, index) => {
+let newLine = line;
+let diff = 0;
+if (e.shiftKey) {
+if (newLine.startsWith('  ')) { newLine = newLine.substring(2); diff = -2; }
+else if (newLine.startsWith(' ') || newLine.startsWith('\t')) { newLine = newLine.substring(1); diff = -1; }
+} else {
+newLine = '  ' + newLine;
+diff = 2;
+}
+if (index === 0) firstLineLengthDiff = diff;
+totalLengthDiff += diff;
+return newLine;
+});
+editor.value = value.substring(0, lineStartPos) + newLines.join('\n') + value.substring(lineEndPos);
+let newStart = Math.max(lineStartPos, start + firstLineLengthDiff);
+editor.selectionStart = newStart;
+editor.selectionEnd = Math.max(newStart, end + totalLengthDiff);
+}
+setUnsavedState(true);
+saveState();
+}
+}
+
+window.addEventListener('keydown', handleKeyDown);
+window.addEventListener('beforeunload', (e) => { if (isUnsaved) { e.preventDefault(); e.returnValue = ''; }});
+editor.addEventListener('input', handleInput);
+saveState();
+
+class GeminiBrain {
+constructor() {
+this.apiKey = null;
+this.activeModel = 'gemini-2.5-flash';
+this.conversationHistory = [];
+this.input = document.getElementById('ai-input');
+this.statusEl = document.getElementById('ai-status');
+this.msgOut = document.getElementById('ai-message-out');
+this.historyEl = document.getElementById('chat-history');
+this.configBtn = document.getElementById('ai-config-btn');
+this.configBtn.onclick = () => this.promptAPIKey();
+this.input.addEventListener('keydown', (e) => {
+if (e.key === 'Enter' && !e.shiftKey) {
+e.preventDefault();
+this.sendUserMessage();
+}
+});
+this.initData();
+}
+initData() {
+const storedKey = localStorage.getItem('gemini_key_pc');
+if (storedKey && storedKey.trim().length > 5) {
+this.apiKey = storedKey;
+this.setStatus("Ready", "");
+document.getElementById('status-model-name').textContent = this.activeModel + ' (connecting...)';
+this.detectBestModels();
+} else {
+this.setStatus("Missing Key", "error");
+this.msgOut.textContent = "Click ⚙️ to add your API key.";
+}
+}
+promptAPIKey() {
+const key = prompt("Paste your Gemini API key from Google AI Studio:", this.apiKey || "");
+if (key && key.trim()) {
+this.apiKey = key.trim();
+localStorage.setItem('gemini_key_pc', this.apiKey);
+document.getElementById('status-model-name').textContent = this.activeModel + ' (connecting...)';
+this.detectBestModels();
+this.setStatus("Ready", "");
+this.msgOut.textContent = "API Key saved locally.";
+}
+}
+setStatus(text, className) {
+this.statusEl.textContent = text;
+this.statusEl.className = className;
+}
+appendMessage(role, text) {
+const div = document.createElement('div');
+div.className = `chat-msg ${role}`;
+if (role === 'ai') {
+const parts = text.split(/(```[\s\S]*?```)/g);
+parts.forEach(part => {
+if (part.startsWith('```') && part.endsWith('```')) {
+const lines = part.slice(3, -3).split('\n');
+let codeText = part.slice(3, -3);
+if (lines.length > 1 && /^[a-zA-Z0-9_+-]+$/.test(lines[0].trim())) {
+codeText = lines.slice(1).join('\n');
+}
+const pre = document.createElement('pre');
+const code = document.createElement('code');
+code.textContent = codeText;
+const copyBtn = document.createElement('button');
+copyBtn.className = 'copy-code-btn';
+copyBtn.textContent = 'Copy';
+copyBtn.onclick = () => {
+navigator.clipboard.writeText(codeText).then(() => {
+copyBtn.textContent = 'Copied!';
+setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+}).catch(() => {
+showToast("Failed to copy code!");
+});
+};
+pre.appendChild(code);
+pre.appendChild(copyBtn);
+div.appendChild(pre);
+} else if (part) {
+const span = document.createElement('span');
+span.textContent = part;
+div.appendChild(span);
+}
+});
+} else {
+div.textContent = text;
+}
+this.historyEl.appendChild(div);
+this.historyEl.scrollTop = this.historyEl.scrollHeight;
+}
+
+
+async sendUserMessage() {
+  const text = this.input.value.trim();
+  if (!text) return;
+  if (!this.apiKey) {
+    this.promptAPIKey();
+    return;
+  }
+  const selStart = editor.selectionStart;
+  const selEnd = editor.selectionEnd;
+  const selectedText = editor.value.substring(selStart, selEnd);
+  const hasSelection = selStart !== selEnd && selectedText.trim().length > 0;
+  const contextCode = hasSelection ? selectedText : editor.value;
+  const contextType = hasSelection ? "SELECTED CODE BLOCK ONLY" : "FULL FILE CODE";
+  this.input.value = '';
+  this.input.disabled = true;
+  this.appendMessage('user', text + (hasSelection ? " [Selection Sent]" : ""));
+  this.setStatus("THINKING...", "thinking");
+  this.msgOut.textContent = "Analyzing request...";
+  let dotCount = 0;
+  const loadingInterval = setInterval(() => {
+    dotCount = (dotCount + 1) % 4;
+    this.setStatus("THINKING" + ".".repeat(dotCount), "thinking");
+  }, 400);
+  try {
+    const historyPayload = this.conversationHistory.map(entry => ({
+      role: entry.role === 'ai' ? 'model' : 'user',
+      parts: [{ text: entry.text }]
+    }));
+    const prompt = `CODE CONTEXT (${contextType}):\n\`\`\`\n${contextCode}\n\`\`\`\n\nUSER REQUEST: ${text}`;
+    
+    const payload = {
+      contents: [
+        ...historyPayload,
+        { role: 'user', parts: [{ text: prompt }] }
+      ],
+      systemInstruction: {
+        parts: [{
+          text: `SYSTEM: You are an expert coding assistant for single-file web applications (HTML/CSS/JS).
+The user is viewing code in an adjacent editor window.
+CRITICAL RULES:
+1. DO NOT output search/replace blocks or attempt to update/modify the user's document directly.
+2. DO NOT output the full file contents unless explicitly requested.
+3. Provide concise explanations and return target code snippets inside standard markdown blocks (\`\`\`) that the user can copy into their code manually.
+4. Keep token usage minimal and targeted.`
+        }]
+      },
+      generationConfig: {
+        temperature: 0.2,
+        topP: 0.95
+      }
+    };
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${this.activeModel}:generateContent?key=${this.apiKey}`, {
+      method: 'POST',
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error('API Error: ' + response.statusText);
+    const data = await response.json();
+    const aiText = data.candidates[0].content.parts[0].text;
+    clearInterval(loadingInterval);
+    this.appendMessage('ai', aiText);
+    this.conversationHistory.push({ role: 'user', text: text });
+    this.conversationHistory.push({ role: 'ai', text: aiText });
+    if (this.conversationHistory.length > 8) {
+      this.conversationHistory = this.conversationHistory.slice(-8);
+    }
+    this.setStatus("FINISHED!", "finished");
+    this.msgOut.textContent = "Response received.";
+  } catch (e) {
+    clearInterval(loadingInterval);
+    this.setStatus("ERROR", "error");
+    this.msgOut.textContent = e.message;
+    this.appendMessage('ai', "Error: " + e.message);
+  } finally {
+    this.input.disabled = false;
+    this.input.focus();
+  }
+}
+
+
+async detectBestModels() {
+try {
+const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`);
+const data = await response.json();
+const models = data.models
+.filter(m => m.supportedGenerationMethods.includes("generateContent") && m.name.includes("gemini"))
+.map(m => m.name.replace('models/', ''));
+const sortModels = (list) => {
+return list.sort((a, b) => {
+const getVersion = (name) => {
+const match = name.match(/gemini-(\d+(?:\.\d+)?)/i);
+return match ? parseFloat(match[1]) : 0;
+};
+const vA = getVersion(a);
+const vB = getVersion(b);
+if (vA !== vB) return vB - vA;
+const isPreview = (n) => n.toLowerCase().match(/preview|exp|experimental/);
+if (isPreview(a) && !isPreview(b)) return -1;
+if (!isPreview(a) && isPreview(b)) return 1;
+return 0;
+});
+};
+const flashModels = sortModels(models.filter(m => m.toLowerCase().includes('flash')));
+if (flashModels.length > 0) {
+this.activeModel = flashModels[0];
+}
+document.getElementById('status-model-name').textContent = this.activeModel;
+} catch (e) {
+console.error("Model fetch failed", e);
+document.getElementById('status-model-name').textContent = this.activeModel + ' (offline)';
+}
+}
+}
+const gemini = new GeminiBrain();
+</script>
+</body>
+</html>
