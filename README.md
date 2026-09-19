@@ -13,6 +13,7 @@
 * [Lander Rescue Mission](https://johnnyheggelund.github.io/lander/)
 * [Ludo Board Game](https://johnnyheggelund.github.io/ludo/)
 * [Monopoly Board Game](https://johnnyheggelund.github.io/monopoly/)
+* [Shithead Card Game](https://johnnyheggelund.github.io/shithead-card-game/)
 * [Snake Arcade Game](https://johnnyheggelund.github.io/snake-arcade-game/)
 * [Sokoban Puzzle](https://johnnyheggelund.github.io/sokoban-box-puzzle-game/)
 * [Sokoban ASCII (10MB!)](https://johnnyheggelund.github.io/sokoban-ascii/)
