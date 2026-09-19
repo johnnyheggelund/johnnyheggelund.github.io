@@ -12,6 +12,7 @@
 * [Checkers (American)](https://johnnyheggelund.github.io/checkers-american/)
 * [Checkers (European)](https://johnnyheggelund.github.io/checkers-european/)
 * [City Builder](https://johnnyheggelund.github.io/city-builder-sim-game/)
+* [Klondike Solitaire](https://johnnyheggelund.github.io/klondike-solitaire/)
 * [Lander Rescue Mission](https://johnnyheggelund.github.io/lander/)
 * [Ludo Board Game](https://johnnyheggelund.github.io/ludo/)
 * [Monopoly Board Game](https://johnnyheggelund.github.io/monopoly/)
