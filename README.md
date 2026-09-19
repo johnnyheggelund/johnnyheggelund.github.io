@@ -6,6 +6,7 @@
 * [Sokoban Puzzle](https://johnnyheggelund.github.io/sokoban-box-puzzle-game/)
 
 ### Tools
+* [Emoji Library](https://johnnyheggelund.github.io/emoji-library/)
 * [Image Editor](https://johnnyheggelund.github.io/image-editor/)
 * [LineBeast Web Code Editor](https://johnnyheggelund.github.io/linebeast-web-code-editor/)
 * [Video Player](https://johnnyheggelund.github.io/video-player/)
