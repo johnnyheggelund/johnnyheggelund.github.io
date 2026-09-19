@@ -7,6 +7,7 @@
 * [Adventure RPG](https://johnnyheggelund.github.io/adventure-rpg/)
 * [Brain Games](https://johnnyheggelund.github.io/brain-games/)
 * [City Builder](https://johnnyheggelund.github.io/city-builder-sim-game/)
+* [Lander Rescue Mission](https://johnnyheggelund.github.io/lander/)
 * [Sokoban Puzzle](https://johnnyheggelund.github.io/sokoban-box-puzzle-game/)
 * [Sokoban Level Designer](https://johnnyheggelund.github.io/sokoban-level-designer/)
 * [Tetris](https://johnnyheggelund.github.io/tetris/)
