@@ -3,6 +3,7 @@
 ### Games
 * [8-Ball Pool v1](https://johnnyheggelund.github.io/8-ball-pool-v1/)
 * [8-Ball Pool v2](https://johnnyheggelund.github.io/8-ball-pool-v2/)
+* [8-Ball Pool v3 PVP](https://johnnyheggelund.github.io/8-ball-pool-v3/)
 * [City Builder](https://johnnyheggelund.github.io/city-builder-sim-game/)
 * [Sokoban Puzzle](https://johnnyheggelund.github.io/sokoban-box-puzzle-game/)
 * [Sokoban Level Designer](https://johnnyheggelund.github.io/sokoban-level-designer/)
