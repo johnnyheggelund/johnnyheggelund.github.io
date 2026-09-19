@@ -7,6 +7,7 @@
 * [City Builder](https://johnnyheggelund.github.io/city-builder-sim-game/)
 * [Sokoban Puzzle](https://johnnyheggelund.github.io/sokoban-box-puzzle-game/)
 * [Sokoban Level Designer](https://johnnyheggelund.github.io/sokoban-level-designer/)
+* [Tetris](https://johnnyheggelund.github.io/tetris/)
 
 ### Tools
 * [Emoji Library](https://johnnyheggelund.github.io/emoji-library/)
