@@ -2,6 +2,7 @@
 
 ### Games
 * [100 Laps Racing v1](https://johnnyheggelund.github.io/100-laps-v1/)
+* [100 Laps Racing v2](https://johnnyheggelund.github.io/100-laps-v2/)
 * [8-Ball Pool v1](https://johnnyheggelund.github.io/8-ball-pool-v1/)
 * [8-Ball Pool v2](https://johnnyheggelund.github.io/8-ball-pool-v2/)
 * [8-Ball Pool v3 PVP](https://johnnyheggelund.github.io/8-ball-pool-v3/)
