@@ -22,6 +22,7 @@
 ### Tools
 * [Base64 Code Generator / Converter](https://johnnyheggelund.github.io/base64-code-generator/)
 * [Emoji Library](https://johnnyheggelund.github.io/emoji-library/)
+* [Gemini AI API Coding Assistant](https://johnnyheggelund.github.io/gemini-coding-assistant/)
 * [Image Editor](https://johnnyheggelund.github.io/image-editor/)
 * [LineBeast Web Code Editor](https://johnnyheggelund.github.io/linebeast-web-code-editor/)
 * [Video Player](https://johnnyheggelund.github.io/video-player/)
