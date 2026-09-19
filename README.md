@@ -13,6 +13,7 @@
 * [Ludo Board Game](https://johnnyheggelund.github.io/ludo/)
 * [Monopoly Board Game](https://johnnyheggelund.github.io/monopoly/)
 * [Sokoban Puzzle](https://johnnyheggelund.github.io/sokoban-box-puzzle-game/)
+* [Sokoban ASCII (10MB!)](https://johnnyheggelund.github.io/sokoban-ascii/)
 * [Sokoban Level Designer](https://johnnyheggelund.github.io/sokoban-level-designer/)
 * [Tetris](https://johnnyheggelund.github.io/tetris/)
 
