@@ -5,6 +5,7 @@
 * [8-Ball Pool v2](https://johnnyheggelund.github.io/8-ball-pool-v2/)
 * [8-Ball Pool v3 PVP](https://johnnyheggelund.github.io/8-ball-pool-v3/)
 * [Adventure RPG](https://johnnyheggelund.github.io/adventure-rpg/)
+* [Amelia X Endless Runner](https://johnnyheggelund.github.io/ameliax/)
 * [Brain Games](https://johnnyheggelund.github.io/brain-games/)
 * [Checkers (American)](https://johnnyheggelund.github.io/checkers-american/)
 * [Checkers (European)](https://johnnyheggelund.github.io/checkers-european/)
