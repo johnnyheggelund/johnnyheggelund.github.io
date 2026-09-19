@@ -10,3 +10,6 @@
 * [Image Editor](https://johnnyheggelund.github.io/image-editor/)
 * [LineBeast Web Code Editor](https://johnnyheggelund.github.io/linebeast-web-code-editor/)
 * [Video Player](https://johnnyheggelund.github.io/video-player/)
+
+### Norske Spill
+* [Damspill med europeiske regler](https://johnnyheggelund.github.io/dam-europeisk/)
