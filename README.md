@@ -6,6 +6,7 @@
 * [8-Ball Pool v3 PVP](https://johnnyheggelund.github.io/8-ball-pool-v3/)
 * [Adventure RPG](https://johnnyheggelund.github.io/adventure-rpg/)
 * [Brain Games](https://johnnyheggelund.github.io/brain-games/)
+* [Checkers (American)](https://johnnyheggelund.github.io/checkers-american/)
 * [City Builder](https://johnnyheggelund.github.io/city-builder-sim-game/)
 * [Lander Rescue Mission](https://johnnyheggelund.github.io/lander/)
 * [Sokoban Puzzle](https://johnnyheggelund.github.io/sokoban-box-puzzle-game/)
