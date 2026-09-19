@@ -4,6 +4,7 @@
 * [8-Ball Pool v2](https://johnnyheggelund.github.io/8-ball-pool-v2/)
 * [City Builder](https://johnnyheggelund.github.io/city-builder-sim-game/)
 * [Sokoban Puzzle](https://johnnyheggelund.github.io/sokoban-box-puzzle-game/)
+* [Sokoban Level Designer](https://johnnyheggelund.github.io/sokoban-level-designer/)
 
 ### Tools
 * [Emoji Library](https://johnnyheggelund.github.io/emoji-library/)
