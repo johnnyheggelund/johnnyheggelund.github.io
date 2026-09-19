@@ -19,6 +19,7 @@
 * [Tetris](https://johnnyheggelund.github.io/tetris/)
 
 ### Tools
+* [Base64 Code Generator / Converter](https://johnnyheggelund.github.io/base64-code-generator/)
 * [Emoji Library](https://johnnyheggelund.github.io/emoji-library/)
 * [Image Editor](https://johnnyheggelund.github.io/image-editor/)
 * [LineBeast Web Code Editor](https://johnnyheggelund.github.io/linebeast-web-code-editor/)
